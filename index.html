@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏕️ Camping Planner</title>
+
+  <!-- React + Babel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+  <style>
+    /* ── Reset & base ────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green:   #2d6a4f;
+      --green2:  #40916c;
+      --green3:  #74c69d;
+      --amber:   #f4a261;
+      --red:     #e76f51;
+      --sky:     #219ebc;
+      --bg:      #f0f4f1;
+      --card:    #ffffff;
+      --text:    #1b2826;
+      --muted:   #6b7c74;
+      --border:  #d8e4dc;
+      --radius:  12px;
+      --shadow:  0 2px 12px rgba(0,0,0,.08);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    .app-header {
+      background: var(--green);
+      color: #fff;
+      padding: 16px 20px 0;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    .app-header h1 { font-size: 1.25rem; font-weight: 700; }
+    .nav-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+    .nav-tab {
+      padding: 8px 16px;
+      border-radius: 8px 8px 0 0;
+      background: transparent;
+      color: rgba(255,255,255,.75);
+      border: none; cursor: pointer;
+      font-size: .875rem; font-weight: 500;
+      white-space: nowrap; transition: all .15s;
+    }
+    .nav-tab.active { background: var(--bg); color: var(--green); font-weight: 700; }
+    .nav-tab:hover:not(.active) { background: rgba(255,255,255,.12); color: #fff; }
+
+    /* ── Layout ──────────────────────────────────────────────────── */
+    .page { padding: 20px; max-width: 900px; margin: 0 auto; }
+
+    /* ── Cards ───────────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .card-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+
+    /* ── Summary stats ───────────────────────────────────────────── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat-card {
+      background: var(--card); border-radius: var(--radius);
+      padding: 16px; text-align: center; box-shadow: var(--shadow);
+    }
+    .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--green); }
+    .stat-label { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── Day cards ───────────────────────────────────────────────── */
+    .day-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px; }
+    .day-label { background: var(--green); color: #fff; padding: 10px 16px; font-weight: 700; font-size: .9rem; }
+    .meal-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; border-bottom: 1px solid var(--border); transition: background .1s;
+    }
+    .meal-row:last-child { border-bottom: none; }
+    .meal-row:hover { background: #f7faf8; }
+    .meal-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .meal-info { flex: 1; }
+    .meal-name { font-weight: 600; font-size: .9rem; }
+    .meal-detail { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+    .meal-badge { font-size: .7rem; padding: 3px 8px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+
+    /* ── Shopping ────────────────────────────────────────────────── */
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-btn {
+      padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+      background: var(--card); font-size: .8rem; cursor: pointer; font-weight: 500; transition: all .15s;
+    }
+    .filter-btn.active { background: var(--green); color: #fff; border-color: var(--green); }
+    .shopping-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; background: var(--card); border-radius: var(--radius);
+      margin-bottom: 8px; box-shadow: var(--shadow); transition: opacity .2s;
+    }
+    .shopping-item.purchased { opacity: .55; }
+    .check-btn {
+      width: 24px; height: 24px; border-radius: 6px; border: 2px solid var(--border);
+      background: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all .15s;
+    }
+    .check-btn.checked { background: var(--green3); border-color: var(--green); }
+    .item-info { flex: 1; }
+    .item-name { font-weight: 600; font-size: .9rem; }
+    .item-meta { font-size: .75rem; color: var(--muted); margin-top: 3px; }
+    .item-store { font-size: .75rem; font-weight: 600; color: var(--sky); }
+
+    /* ── Shop tile grid ─────────────────────────────────────────────── */
+    .store-section { margin-bottom: 24px; }
+    .store-section-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .store-section-name { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .store-volunteer {
+      font-size: .78rem; font-weight: 600; color: var(--primary);
+      background: #ede9fe; padding: 2px 9px; border-radius: 20px;
+    }
+    .store-progress {
+      font-size: .75rem; color: var(--muted);
+      background: var(--border); padding: 2px 9px; border-radius: 20px;
+    }
+    .store-all-done {
+      font-size: .75rem; font-weight: 700; color: var(--green);
+      background: #dcfce7; padding: 3px 10px; border-radius: 20px;
+    }
+    .item-tiles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    @media (max-width: 500px) { .item-tiles-grid { grid-template-columns: repeat(2, 1fr); } }
+    .item-tile {
+      position: relative; background: var(--card); border: 2px solid var(--border);
+      border-radius: var(--radius); padding: 14px 10px; text-align: center;
+      cursor: pointer; transition: all .15s; box-shadow: var(--shadow);
+      min-height: 90px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px;
+      -webkit-tap-highlight-color: transparent; user-select: none;
+      width: 100%; outline: none;
+    }
+    .item-tile:hover { border-color: var(--green3); background: #f5fff8; }
+    .item-tile:active { transform: scale(.93); }
+    .item-tile--done { background: #f0fdf4; border-color: var(--green); opacity: .72; }
+    .item-tile-check {
+      position: absolute; top: 5px; right: 8px;
+      font-size: .95rem; font-weight: 900; color: var(--green);
+    }
+    .item-tile-name {
+      font-weight: 700; font-size: .82rem; color: var(--text);
+      line-height: 1.25; word-break: break-word;
+    }
+    .item-tile--done .item-tile-name { text-decoration: line-through; color: var(--muted); }
+    .item-tile-qty { font-size: .72rem; color: var(--muted); }
+    .item-tile-meal { font-size: .68rem; color: var(--muted); margin-top: 1px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .item-tile-spinner {
+      position: absolute; top: 5px; right: 8px;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,.12);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin .65s linear infinite;
+    }
+    .item-tile--loading { opacity: .7; cursor: wait; }
+    .item-tile-edit-btn {
+      position: absolute; top: 5px; left: 6px;
+      background: rgba(255,255,255,.92); border: 1px solid var(--border);
+      border-radius: 5px; width: 20px; height: 20px;
+      font-size: .6rem; line-height: 1; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; opacity: 0; transition: opacity .15s; z-index: 2;
+    }
+    .item-tile:hover .item-tile-edit-btn { opacity: 1; }
+
+    /* ── Expenses ────────────────────────────────────────────────── */
+    .expense-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .expense-table th { text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 600; }
+    .expense-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .expense-table tr:last-child td { border-bottom: none; }
+    .expense-table tr:hover td { background: #f7faf8; }
+    .store-tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: .72rem; font-weight: 700; background: #e0f2fe; color: #0369a1; }
+    .progress-bar-wrap { background: var(--border); border-radius: 99px; height: 8px; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--green); border-radius: 99px; transition: width .4s; }
+
+    /* ── Family split ────────────────────────────────────────────── */
+    .family-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .family-row:last-child { border-bottom: none; }
+    .family-avatar { width: 40px; height: 40px; border-radius: 10px; background: var(--green3); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+    .family-cost { font-size: 1rem; font-weight: 800; color: var(--green); margin-left: auto; }
+
+    /* ── Signups ─────────────────────────────────────────────────── */
+    .signup-card {
+      display: flex; align-items: center; gap: 12px; background: var(--card);
+      border-radius: var(--radius); padding: 12px 16px; box-shadow: var(--shadow); margin-bottom: 10px;
+    }
+    .signup-avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--green2), var(--green3));
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 1rem; flex-shrink: 0;
+    }
+
+    /* ── Form ────────────────────────────────────────────────────── */
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: .8rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; display: block; }
+    .form-input, .form-select {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: .9rem; background: var(--card); transition: border-color .15s; outline: none;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--green2); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ── Buttons ─────────────────────────────────────────────────── */
+    .btn { padding: 10px 20px; border-radius: 8px; border: none; font-size: .875rem; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .btn-primary { background: var(--green); color: #fff; }
+    .btn-primary:hover { background: var(--green2); }
+    .btn-outline { background: none; border: 1.5px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--green2); color: var(--green); }
+    .btn-sm { padding: 6px 12px; font-size: .78rem; }
+
+    /* ── Modal ───────────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: flex; align-items: flex-end; justify-content: center; z-index: 200;
+    }
+    @media (min-width: 640px) { .modal-overlay { align-items: center; } }
+    .modal {
+      background: var(--card); border-radius: 20px 20px 0 0;
+      padding: 24px 20px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
+    }
+    @media (min-width: 640px) { .modal { border-radius: var(--radius); } }
+    .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+    /* ── Misc ────────────────────────────────────────────────────── */
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .section-title { font-size: 1.1rem; font-weight: 700; }
+    .badge-green { background: #dcfce7; color: #16a34a; }
+    .badge-amber { background: #fef3c7; color: #d97706; }
+    .badge-gray  { background: #f3f4f6; color: #6b7280; }
+    .text-muted  { color: var(--muted); font-size: .85rem; }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty-state .emoji { font-size: 2.5rem; margin-bottom: 10px; }
+    .config-banner {
+      background: #fef3c7; border: 1px solid #fbbf24; border-radius: var(--radius);
+      padding: 12px 16px; margin-bottom: 20px; font-size: .85rem; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .config-banner code { background: rgba(0,0,0,.08); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: .82rem; }
+
+    /* ── Sync ────────────────────────────────────────────────── */
+    .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .sync-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+      border-radius: 20px; padding: 5px 12px;
+      color: #fff; font-size: .75rem; font-weight: 600; cursor: pointer;
+      transition: background .15s; white-space: nowrap; flex-shrink: 0;
+    }
+    .sync-btn:hover:not(:disabled) { background: rgba(255,255,255,.25); }
+    .sync-btn:disabled { opacity: .65; cursor: default; }
+    .sync-btn.offline { background: rgba(231,111,81,.3); border-color: rgba(231,111,81,.6); }
+    .sync-icon { font-size: .95rem; display: inline-block; line-height: 1; }
+    .sync-icon.spin { animation: spin .8s linear infinite; }
+    .sync-badge {
+      background: var(--amber); color: #7c2d12;
+      border-radius: 10px; padding: 1px 6px; font-size: .68rem; font-weight: 800;
+    }
+    .offline-banner {
+      background: #fef2f2; border: 1px solid #fca5a5; border-radius: var(--radius);
+      padding: 10px 16px; margin-bottom: 16px; font-size: .83rem;
+      display: flex; gap: 8px; align-items: center; color: #991b1b;
+    }
+    @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+// After deploying apps-script/Code.gs, paste your Web App URL here
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGcb--e1ZPD5GQoAGGh8plEs9f7L7TwoX7oeJS8-erJuDeoSlY3YP8Qbgspl4qLMol/exec';
+// Set to false once your Apps Script is deployed and URL is set above
+const USE_MOCK_DATA = false;
+
+// ─── MOCK DATA ────────────────────────────────────────────────────────────────
+const MOCK = {
+  schedule: [
+    { _row:2,  Day:1, Meal:'Breakfast', Item:'Pancakes & Bacon',      Details:'Cast iron skillet',              'Assigned Volunteer':'Priya',  Status:'Planned' },
+    { _row:3,  Day:1, Meal:'Lunch',     Item:'Sandwiches & Chips',    Details:'Make-your-own station',           'Assigned Volunteer':'Ravi',   Status:'Planned' },
+    { _row:4,  Day:1, Meal:'Dinner',    Item:'BBQ Burgers & Dogs',    Details:'Grill by the fire pit',          'Assigned Volunteer':'Surya',  Status:'Planned' },
+    { _row:5,  Day:1, Meal:'Activity',  Item:'Nature Hike',           Details:'3-mile loop, meet at 10am',      'Assigned Volunteer':'Anand',  Status:'Planned' },
+    { _row:6,  Day:2, Meal:'Breakfast', Item:'Eggs & Toast',          Details:'Full camp breakfast',            'Assigned Volunteer':'Priya',  Status:'Planned' },
+    { _row:7,  Day:2, Meal:'Lunch',     Item:'Taco Bar',              Details:'Carne asada + veggie option',    'Assigned Volunteer':'Meera',  Status:'Planned' },
+    { _row:8,  Day:2, Meal:'Dinner',    Item:'Campfire Stew',         Details:'Big pot — veg & beef',           'Assigned Volunteer':'Surya',  Status:'Planned' },
+    { _row:9,  Day:2, Meal:'Activity',  Item:'Kayaking',              Details:'Rent from park office at 2pm',   'Assigned Volunteer':'Ravi',   Status:'Planned' },
+    { _row:10, Day:3, Meal:'Breakfast', Item:'Cereal & Fruit',        Details:'Easy pack-up morning',           'Assigned Volunteer':'All',    Status:'Planned' },
+    { _row:11, Day:3, Meal:'Activity',  Item:'Depart & Clean Up',     Details:'Check-out by noon',              'Assigned Volunteer':'All',    Status:'Planned' },
+  ],
+  shopping: [
+    { _row:2,  ID:'s1',  Meal:'Breakfast', Category:'Groceries', Item:'Eggs',          Quantity:'3 dozen', Store:'Costco',      Volunteer:'Priya',  Status:'Purchased', Cost:8.99  },
+    { _row:3,  ID:'s2',  Meal:'Breakfast', Category:'Groceries', Item:'Pancake Mix',   Quantity:'2 bags',  Store:'Trader Joes', Volunteer:'Priya',  Status:'Purchased', Cost:6.50  },
+    { _row:4,  ID:'s3',  Meal:'Breakfast', Category:'Groceries', Item:'Bacon',         Quantity:'3 packs', Store:'Costco',      Volunteer:'Ravi',   Status:'Pending',   Cost:0     },
+    { _row:5,  ID:'s4',  Meal:'Lunch',     Category:'Groceries', Item:'Bread Loaves',  Quantity:'4',       Store:'Safeway',     Volunteer:'Ravi',   Status:'Pending',   Cost:0     },
+    { _row:6,  ID:'s5',  Meal:'Dinner',    Category:'Groceries', Item:'Burger Patties',Quantity:'40',      Store:'Costco',      Volunteer:'Surya',  Status:'Pending',   Cost:0     },
+    { _row:7,  ID:'s6',  Meal:'Dinner',    Category:'Groceries', Item:'Hot Dogs',      Quantity:'2 packs', Store:'Costco',      Volunteer:'Surya',  Status:'Pending',   Cost:0     },
+    { _row:8,  ID:'s7',  Meal:'Supplies',  Category:'Supplies',  Item:'Paper Plates',  Quantity:'100 ct',  Store:'Target',      Volunteer:'Meera',  Status:'Pending',   Cost:0     },
+    { _row:9,  ID:'s8',  Meal:'Supplies',  Category:'Supplies',  Item:'Charcoal Bags', Quantity:'3',       Store:'Target',      Volunteer:'Meera',  Status:'Purchased', Cost:24.00 },
+    { _row:10, ID:'s9',  Meal:'Dinner',    Category:'Groceries', Item:'Burger Buns',   Quantity:'3 packs', Store:'Safeway',     Volunteer:'Anand',  Status:'Pending',   Cost:0     },
+    { _row:11, ID:'s10', Meal:'Lunch',     Category:'Groceries', Item:'Deli Meats',    Quantity:'3 lbs',   Store:'Safeway',     Volunteer:'Anand',  Status:'Pending',   Cost:0     },
+  ],
+  volunteers: [
+    { _row:2, Name:'Priya', Family:'Sharma', 'Assigned Store':'Costco',      Phone:'555-0101' },
+    { _row:3, Name:'Ravi',  Family:'Sharma', 'Assigned Store':'Trader Joes', Phone:'555-0102' },
+    { _row:4, Name:'Surya', Family:'Rao',    'Assigned Store':'Costco',      Phone:'555-0103' },
+    { _row:5, Name:'Meera', Family:'Patel',  'Assigned Store':'Target',      Phone:'555-0104' },
+    { _row:6, Name:'Anand', Family:'Patel',  'Assigned Store':'Safeway',     Phone:'555-0105' },
+  ],
+  families: [
+    { _row:2, 'Family Name':'Sharma', Members:6, Contact:'Priya', Email:'priya@example.com' },
+    { _row:3, 'Family Name':'Rao',    Members:4, Contact:'Surya', Email:'surya@example.com' },
+    { _row:4, 'Family Name':'Patel',  Members:5, Contact:'Meera', Email:'meera@example.com' },
+    { _row:5, 'Family Name':'Kumar',  Members:3, Contact:'Amit',  Email:'amit@example.com'  },
+  ],
+  expenses: [
+    { _row:2, Volunteer:'Priya', Store:'Costco',      Item:'Eggs, Pancake Mix', Amount:15.49, Date:'2024-07-10' },
+    { _row:3, Volunteer:'Meera', Store:'Target',      Item:'Charcoal Bags',     Amount:24.00, Date:'2024-07-10' },
+    { _row:4, Volunteer:'Surya', Store:'Costco',      Item:'Water Cases x4',    Amount:18.00, Date:'2024-07-11' },
+    { _row:5, Volunteer:'Ravi',  Store:'Trader Joes', Item:'Snacks & Chips',    Amount:32.50, Date:'2024-07-11' },
+  ],
+  signups: [
+    { _row:2, Name:'Priya Sharma', Family:'Sharma', Members:6, Nights:2, Email:'priya@example.com', 'Dietary Notes':'None',           'Signed Up At':'2024-06-20' },
+    { _row:3, Name:'Surya Rao',    Family:'Rao',    Members:4, Nights:2, Email:'surya@example.com', 'Dietary Notes':'Vegetarian x2',  'Signed Up At':'2024-06-21' },
+    { _row:4, Name:'Meera Patel',  Family:'Patel',  Members:5, Nights:1, Email:'meera@example.com', 'Dietary Notes':'Nut allergy x1', 'Signed Up At':'2024-06-22' },
+    { _row:5, Name:'Amit Kumar',   Family:'Kumar',  Members:3, Nights:1, Email:'amit@example.com',  'Dietary Notes':'None',           'Signed Up At':'2024-06-23' },
+  ],
+};
+
+// ─── LOCAL MOCK STATE (so toggles/adds work in demo) ─────────────────────────
+const mockState = { ...JSON.parse(JSON.stringify(MOCK)) };
+
+function computeSummary(data) {
+  const totalCost    = data.expenses.reduce((s,e) => s + (parseFloat(e.Amount)||0), 0);
+  const totalPeople  = data.signups.reduce((s,p)  => s + (parseInt(p.Members)||0),  0);
+  const costPerPerson = totalPeople > 0 ? totalCost / totalPeople : 0;
+  const byStore = {};
+  data.expenses.forEach(e => { byStore[e.Store] = (byStore[e.Store]||0) + (parseFloat(e.Amount)||0); });
+  const familyCosts  = data.families.map(f => ({
+    family:  f['Family Name'], members: parseInt(f.Members)||0,
+    cost:    Math.round((parseInt(f.Members)||0) * costPerPerson * 100) / 100,
+  }));
+  const totalItems    = data.shopping.length;
+  const purchasedItems = data.shopping.filter(i => i.Status === 'Purchased' || i.Status === 'Done').length;
+  return {
+    totalCost:       Math.round(totalCost*100)/100,
+    totalPeople,
+    costPerPerson:   Math.round(costPerPerson*100)/100,
+    byStore,
+    familyCosts,
+    shoppingProgress: { total: totalItems, purchased: purchasedItems },
+  };
+}
+
+// ─── CACHE ───────────────────────────────────────────────────────────────────
+const Cache = {
+  PREFIX: 'camping_cache_',
+  ACTIONS: ['getSchedule','getShopping','getVolunteers','getFamilies','getExpenses','getSignups','getSummary'],
+  get(action) {
+    try { const r = localStorage.getItem(this.PREFIX + action); return r ? JSON.parse(r) : null; } catch { return null; }
+  },
+  set(action, data) {
+    try { localStorage.setItem(this.PREFIX + action, JSON.stringify({ data, ts: Date.now() })); } catch {}
+  },
+  hasAll() { return this.ACTIONS.every(a => this.get(a) !== null); },
+};
+
+// ─── PENDING QUEUE ────────────────────────────────────────────────────────────
+const PendingQueue = {
+  KEY: 'camping_pending',
+  getAll() { try { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); } catch { return []; } },
+  push(body) {
+    const q = this.getAll();
+    q.push({ id: Date.now() + Math.random(), body });
+    localStorage.setItem(this.KEY, JSON.stringify(q));
+  },
+  remove(id) { localStorage.setItem(this.KEY, JSON.stringify(this.getAll().filter(i => i.id !== id))); },
+};
+
+// ─── RAW API (no offline logic) ───────────────────────────────────────────────
+async function rawGet(action) {
+  if (USE_MOCK_DATA) {
+    await new Promise(r => setTimeout(r, 280));
+    const map = { getSchedule:'schedule', getShopping:'shopping', getVolunteers:'volunteers',
+                  getFamilies:'families', getExpenses:'expenses', getSignups:'signups' };
+    if (action === 'getSummary') return computeSummary(mockState);
+    return JSON.parse(JSON.stringify(mockState[map[action]] || []));
+  }
+  const res  = await fetch(`${APPS_SCRIPT_URL}?action=${action}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error);
+  return json.data;
+}
+
+async function rawPost(body) {
+  if (USE_MOCK_DATA) {
+    await new Promise(r => setTimeout(r, 180));
+    return { ok: true };
+  }
+  const res  = await fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify(body) });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error);
+  return json.data;
+}
+
+// ─── OFFLINE-AWARE API ────────────────────────────────────────────────────────
+const api = {
+  async get(action) {
+    try {
+      const data = await rawGet(action);
+      if (!USE_MOCK_DATA) Cache.set(action, data);
+      return data;
+    } catch (e) {
+      const cached = Cache.get(action);
+      if (cached) return cached.data;
+      throw e;
+    }
+  },
+  async post(body) {
+    try {
+      return await rawPost(body);
+    } catch (e) {
+      if (!navigator.onLine) {
+        PendingQueue.push(body);
+        window.dispatchEvent(new CustomEvent('campingPendingUpdate'));
+        return { ok: true, queued: true };
+      }
+      throw e;
+    }
+  },
+};
+
+// ─── SYNC CONTEXT ─────────────────────────────────────────────────────────────
+const SyncContext = React.createContext({
+  isOnline: true, isSyncing: false, lastSyncAt: null, pendingCount: 0, syncVersion: 0, sync: () => {},
+});
+
+function SyncProvider({ children }) {
+  const [isOnline, setIsOnline]       = React.useState(navigator.onLine);
+  const [isSyncing, setIsSyncing]     = React.useState(false);
+  const [lastSyncAt, setLastSyncAt]   = React.useState(() => {
+    const s = localStorage.getItem('camping_last_sync'); return s ? parseInt(s) : null;
+  });
+  const [pendingCount, setPending]    = React.useState(() => PendingQueue.getAll().length);
+  const [syncVersion, setSyncVersion] = React.useState(0);
+  const syncingRef = React.useRef(false);
+
+  const sync = React.useCallback(async () => {
+    if (syncingRef.current || !navigator.onLine) return;
+    syncingRef.current = true;
+    setIsSyncing(true);
+    try {
+      // 1. Push local writes first
+      for (const item of PendingQueue.getAll()) {
+        try { await rawPost(item.body); PendingQueue.remove(item.id); } catch {}
+      }
+      setPending(PendingQueue.getAll().length);
+      // 2. Pull fresh data from server and cache it
+      await Promise.all(Cache.ACTIONS.map(async a => {
+        try { Cache.set(a, await rawGet(a)); } catch {}
+      }));
+      const now = Date.now();
+      setLastSyncAt(now);
+      localStorage.setItem('camping_last_sync', String(now));
+      setSyncVersion(v => v + 1);
+    } finally {
+      syncingRef.current = false;
+      setIsSyncing(false);
+    }
+  }, []);
+
+  // Auto-sync when network restores
+  React.useEffect(() => {
+    const onOnline  = () => { setIsOnline(true);  sync(); };
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online',  onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => { window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline); };
+  }, [sync]);
+
+  // Track new pending items queued by api.post()
+  React.useEffect(() => {
+    const onPending = () => setPending(PendingQueue.getAll().length);
+    window.addEventListener('campingPendingUpdate', onPending);
+    return () => window.removeEventListener('campingPendingUpdate', onPending);
+  }, []);
+
+  // Pre-warm cache on first ever load
+  React.useEffect(() => {
+    if (!Cache.hasAll() && navigator.onLine) sync();
+  }, []); // eslint-disable-line
+
+  return (
+    <SyncContext.Provider value={{ isOnline, isSyncing, lastSyncAt, pendingCount, syncVersion, sync }}>
+      {children}
+    </SyncContext.Provider>
+  );
+}
+
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const MEAL_ICONS   = { Breakfast:'🌅', Lunch:'☀️', Dinner:'🔥', Activity:'🎒', Supplies:'🧰' };
+const MEAL_COLORS  = { Breakfast:'#fef9c3', Lunch:'#dcfce7', Dinner:'#fee2e2', Activity:'#dbeafe', Supplies:'#f3e8ff' };
+
+const normalizeText = value => String(value ?? '').trim().toLowerCase();
+
+// Treat both app and sheet variants like "Purchased ", "purchased", and "Done" as complete
+const isDone = status => {
+  const s = normalizeText(status);
+  return s === 'purchased' || s === 'done';
+};
+
+const matchesVolunteer = (value, myName) => {
+  const target = normalizeText(myName);
+  if (!target) return false;
+  const normalized = normalizeText(value);
+  if (!normalized) return false;
+  if (normalized === target) return true;
+  return normalized
+    .split(/[\/,&+]/)
+    .map(part => part.trim())
+    .filter(Boolean)
+    .some(part => part === target);
+};
+
+// ─── HOOKS ────────────────────────────────────────────────────────────────────
+function useData(action) {
+  const { syncVersion } = React.useContext(SyncContext);
+  // Serve from cache instantly — no loading flash on repeat visits
+  const [data, setDataRaw]    = React.useState(() => { const c = Cache.get(action); return c ? c.data : null; });
+  const [loading, setLoading] = React.useState(() => Cache.get(action) === null);
+  const [error, setError]     = React.useState(null);
+
+  const load = React.useCallback(async () => {
+    const cached = Cache.get(action);
+    if (cached) { setDataRaw(cached.data); setLoading(false); }
+    else setLoading(true);
+    setError(null);
+    try { setDataRaw(await api.get(action)); }
+    catch (e) { if (!Cache.get(action)) setError(e.message); }
+    finally { setLoading(false); }
+  }, [action]);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  // After a sync, refresh from cache without hitting the network again
+  React.useEffect(() => {
+    if (syncVersion === 0) return;
+    const c = Cache.get(action);
+    if (c) setDataRaw(c.data);
+  }, [syncVersion, action]);
+
+  // Wrap setData so optimistic updates also persist to cache.
+  // This ensures switching tabs loads the latest state rather than stale cached data.
+  const setData = React.useCallback(updater => {
+    setDataRaw(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      Cache.set(action, next);
+      return next;
+    });
+  }, [action]);
+
+  return { data, loading, error, reload: load, setData };
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+function Modal({ title, onClose, children }) {
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+          <div className="modal-title">{title}</div>
+          <button onClick={onClose} style={{background:'none',border:'none',fontSize:'1.5rem',cursor:'pointer',color:'#9ca3af',lineHeight:1}}>×</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── SCHEDULE ─────────────────────────────────────────────────────────────────
+function ScheduleView() {
+  const { data, loading, reload } = useData('getSchedule');
+  const [showAdd, setShowAdd] = React.useState(false);
+  const [form, setForm] = React.useState({ Day:1, Meal:'Breakfast', Item:'', Details:'', 'Assigned Volunteer':'', Status:'Planned' });
+
+  const grouped = React.useMemo(() => {
+    if (!data) return {};
+    const byDay = {};
+    data.forEach(row => {
+      const d = row.Day != null && row.Day !== '' ? `Day ${row.Day}` : 'General';
+      if (!byDay[d]) byDay[d] = {};
+      const meal = row.Meal;
+      if (!byDay[d][meal]) byDay[d][meal] = [];
+      byDay[d][meal].push(row);
+    });
+    const sorted = Object.fromEntries(
+      Object.entries(byDay).sort(([a], [b]) => {
+        if (a === 'General') return 1;
+        if (b === 'General') return -1;
+        return parseInt(a.replace('Day ', '')) - parseInt(b.replace('Day ', ''));
+      })
+    );
+    return sorted;
+  }, [data]);
+
+  const handleAdd = async () => {
+    if (!form.Item.trim()) return;
+    if (USE_MOCK_DATA) {
+      mockState.schedule.push({ ...form, _row: mockState.schedule.length + 2 });
+    }
+    await api.post({ action:'addScheduleItem', data: form });
+    setShowAdd(false);
+    reload();
+  };
+
+  if (loading) return <div className="empty-state"><div className="emoji">⏳</div><p>Loading schedule…</p></div>;
+
+  return (
+    <div>
+      <div className="section-header">
+        <div className="section-title">📅 Trip Schedule</div>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>+ Add Item</button>
+      </div>
+
+      {Object.entries(grouped).map(([day, mealTypes]) => (
+        <div key={day} className="day-card">
+          <div className="day-label">{day}</div>
+          {Object.entries(mealTypes).map(([mealType, items]) => {
+            const byVolunteer = {};
+            items.forEach(item => {
+              const v = item['Assigned Volunteer'] || 'Unassigned';
+              if (!byVolunteer[v]) byVolunteer[v] = [];
+              byVolunteer[v].push(item.Item);
+            });
+            const content = Object.entries(byVolunteer)
+              .map(([v, its]) => `${v} (${its.join(', ')})`)
+              .join(', ');
+            return (
+              <div key={mealType} className="meal-row">
+                <div className="meal-icon" style={{background: MEAL_COLORS[mealType] || '#f3f4f6'}}>
+                  {MEAL_ICONS[mealType] || '📌'}
+                </div>
+                <div className="meal-info">
+                  <div className="meal-name">{mealType}</div>
+                  <div className="meal-detail">{content}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+
+      {showAdd && (
+        <Modal title="➕ Add Schedule Item" onClose={() => setShowAdd(false)}>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Day #</label>
+              <input className="form-input" type="number" min="1" value={form.Day}
+                onChange={e => setForm({...form, Day: e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Type</label>
+              <select className="form-select" value={form.Meal} onChange={e => setForm({...form, Meal:e.target.value})}>
+                <option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Activity</option>
+              </select>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Item / Name *</label>
+            <input className="form-input" placeholder="e.g. Pancakes & Bacon" value={form.Item}
+              onChange={e => setForm({...form, Item:e.target.value})} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Details</label>
+            <input className="form-input" placeholder="Notes, location, time…" value={form.Details}
+              onChange={e => setForm({...form, Details:e.target.value})} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Assigned Volunteer</label>
+            <input className="form-input" placeholder="Name" value={form['Assigned Volunteer']}
+              onChange={e => setForm({...form, 'Assigned Volunteer':e.target.value})} />
+          </div>
+          <div className="modal-actions">
+            <button className="btn btn-outline" onClick={() => setShowAdd(false)}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleAdd}>Add to Schedule</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── EDIT ITEM MODAL ──────────────────────────────────────────────────────────
+function EditItemModal({ item, volunteers, onClose, onSave }) {
+  const [form, setForm] = React.useState({
+    Meal:      item.Meal      || 'Breakfast',
+    Category:  item.Category  || 'Groceries',
+    Item:      item.Item      || '',
+    Quantity:  item.Quantity  || '',
+    Store:     item.Store     || '',
+    Volunteer: item.Volunteer || '',
+  });
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSave = async () => {
+    if (!form.Item.trim()) return;
+    setSaving(true);
+    try { await onSave(item, form); onClose(); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Modal title="✏️ Edit Item" onClose={onClose}>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Meal</label>
+          <select className="form-select" value={form.Meal} onChange={e => setForm({...form, Meal: e.target.value})}>
+            <option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Supplies</option>
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Category</label>
+          <select className="form-select" value={form.Category} onChange={e => setForm({...form, Category: e.target.value})}>
+            <option>Groceries</option><option>Produce</option><option>Dairy</option><option>Supplies</option>
+          </select>
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Item Name *</label>
+        <input className="form-input" value={form.Item} onChange={e => setForm({...form, Item: e.target.value})} />
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Quantity</label>
+          <input className="form-input" value={form.Quantity} onChange={e => setForm({...form, Quantity: e.target.value})} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Store</label>
+          <input className="form-input" value={form.Store} onChange={e => setForm({...form, Store: e.target.value})} />
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Assigned Volunteer</label>
+        <select className="form-select" value={form.Volunteer} onChange={e => setForm({...form, Volunteer: e.target.value})}>
+          <option value="">Unassigned</option>
+          {(volunteers||[]).map(v => <option key={v.Name} value={v.Name}>{v.Name}</option>)}
+        </select>
+      </div>
+      <div className="modal-actions">
+        <button className="btn btn-outline" onClick={onClose} disabled={saving}>Cancel</button>
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving || !form.Item.trim()}>
+          {saving ? 'Saving…' : 'Save Changes'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── SHOPPING ─────────────────────────────────────────────────────────────────
+function ShoppingView({ myName = '', saveName }) {
+  const { data, loading, reload, setData } = useData('getShopping');
+  const { data: volunteers } = useData('getVolunteers');
+  const [showAdd, setShowAdd] = React.useState(false);
+  const [pendingRow, setPendingRow] = React.useState(null);
+  const [confirmState, setConfirmState] = React.useState(null); // { item, actingAs }
+  const [pendingItem, setPendingItem]   = React.useState(null); // waiting for name pick
+  const [form, setForm] = React.useState({ Meal:'Breakfast', Category:'Groceries', Item:'', Quantity:'', Store:'', Volunteer:'', Status:'Pending', Cost:0 });
+  const [editItem, setEditItem] = React.useState(null);
+
+  const handleSaveEdit = async (item, form) => {
+    if (USE_MOCK_DATA) {
+      const idx = mockState.shopping.findIndex(i => i._row === item._row);
+      if (idx !== -1) mockState.shopping[idx] = { ...mockState.shopping[idx], ...form };
+    }
+    await api.post({ action: 'updateShoppingItem', id: item.ID, row: item._row, data: form });
+    setData(prev => prev.map(i => i._row === item._row ? { ...i, ...form } : i));
+  };
+
+  // Group items by store + volunteer combination
+  const byStore = React.useMemo(() => {
+    if (!data) return {};
+    const grouped = data.reduce((acc, item) => {
+      const store = String(item.Store || 'Other').trim() || 'Other';
+      const volunteer = String(item.Volunteer || '').trim() || 'Unassigned';
+      const key = `${store}|||${volunteer}`;
+      if (!acc[key]) acc[key] = { store, volunteer, items: [] };
+      acc[key].items.push(item);
+      return acc;
+    }, {});
+    // Sort so same-store sections are adjacent, then by volunteer name
+    return Object.fromEntries(
+      Object.entries(grouped).sort(([, a], [, b]) =>
+        a.store.localeCompare(b.store) || a.volunteer.localeCompare(b.volunteer)
+      )
+    );
+  }, [data]);
+
+  const doToggle = async (item, newVolunteer) => {
+    if (pendingRow !== null) return;
+    setPendingRow(item._row);
+    try {
+      const newStatus = isDone(item.Status) ? 'Pending' : 'Purchased';
+      const shouldReassign = newStatus === 'Purchased' && newVolunteer && newVolunteer !== item.Volunteer;
+      if (USE_MOCK_DATA) {
+        const idx = mockState.shopping.findIndex(i => i._row === item._row);
+        if (idx !== -1) {
+          mockState.shopping[idx].Status = newStatus;
+          if (shouldReassign) mockState.shopping[idx].Volunteer = newVolunteer;
+        }
+      }
+      await api.post({ action:'updateStatus', id:item.ID, row:item._row, status:newStatus });
+      if (shouldReassign) await api.post({ action:'updateVolunteer', id:item.ID, volunteer:newVolunteer });
+      setData(prev => prev.map(i => i._row === item._row
+        ? { ...i, Status:newStatus, ...(shouldReassign ? { Volunteer:newVolunteer } : {}) }
+        : i
+      ));
+    } finally {
+      setPendingRow(null);
+    }
+  };
+
+  const initiateToggle = (item) => {
+    if (pendingRow !== null) return;
+    const isMarkingDone = !isDone(item.Status);
+    const assignedName = String(item.Volunteer || '').trim();
+    const assignedToOther = isMarkingDone
+      && assignedName && normalizeText(assignedName) !== 'unassigned'
+      && !matchesVolunteer(assignedName, myName);
+    if (assignedToOther) {
+      if (!myName) { setPendingItem(item); } else { setConfirmState({ item, actingAs: myName }); }
+      return;
+    }
+    doToggle(item, null);
+  };
+
+  const handlePickName = (name) => {
+    saveName(name);
+    setConfirmState({ item: pendingItem, actingAs: name });
+    setPendingItem(null);
+  };
+
+  const handleAdd = async () => {
+    if (!form.Item.trim()) return;
+    const newItem = { ...form, ID:'s'+ Date.now(), _row: (data?.length||0)+2 };
+    if (USE_MOCK_DATA) mockState.shopping.push(newItem);
+    await api.post({ action:'addShoppingItem', data: newItem });
+    setShowAdd(false);
+    reload();
+  };
+
+  const purchased = data ? data.filter(i => isDone(i.Status)).length : 0;
+  const total     = data ? data.length : 0;
+
+  if (loading) return <div className="empty-state"><div className="emoji">⏳</div><p>Loading shopping list…</p></div>;
+
+  return (
+    <div>
+      <div className="section-header">
+        <div>
+          <div className="section-title">🛒 Shopping List</div>
+          <div className="text-muted" style={{marginTop:4}}>{purchased} of {total} items done</div>
+        </div>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>+ Add Item</button>
+      </div>
+
+      {/* Overall progress bar */}
+      <div className="card" style={{padding:'12px 16px',marginBottom:20}}>
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:6,fontSize:'.82rem',color:'var(--muted)'}}>
+          <span>Overall Progress</span>
+          <span>{total > 0 ? Math.round(purchased/total*100) : 0}%</span>
+        </div>
+        <div className="progress-bar-wrap">
+          <div className="progress-bar" style={{width: total>0 ? `${purchased/total*100}%` : '0%'}} />
+        </div>
+      </div>
+
+      {/* One section per store + volunteer */}
+      {Object.entries(byStore).map(([key, { store, volunteer, items }]) => {
+        const storeDone = items.filter(i => isDone(i.Status)).length;
+        const allDone   = storeDone === items.length;
+        return (
+          <div key={key} className="store-section">
+            <div className="store-section-header">
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span className="store-section-name">🏪 {store}</span>
+                <span className="store-volunteer">👤 {volunteer}</span>
+                <span className="store-progress">{storeDone}/{items.length} done</span>
+              </div>
+              {allDone && <span className="store-all-done">✓ All Done!</span>}
+            </div>
+
+            <div className="item-tiles-grid">
+              {items.map(item => {
+                const isLoading = pendingRow === item._row;
+                return (
+                  <button
+                    key={item._row}
+                    className={`item-tile${isDone(item.Status) ? ' item-tile--done' : ''}${isLoading ? ' item-tile--loading' : ''}`}
+                    onClick={() => initiateToggle(item)}
+                    disabled={pendingRow !== null}
+                  >
+                    <div className="item-tile-edit-btn"
+                      onClick={e => { e.stopPropagation(); setEditItem(item); }}
+                      title="Edit item"
+                    >✏️</div>
+                    {isLoading
+                      ? <div className="item-tile-spinner" />
+                      : isDone(item.Status) && <div className="item-tile-check">✓</div>
+                    }
+                    <div className="item-tile-name">{item.Item}</div>
+                    <div className="item-tile-qty">{item.Quantity}</div>
+                    <div className="item-tile-meal">{MEAL_ICONS[item.Meal] || '🍽️'} {item.Meal}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      {showAdd && (
+        <Modal title="➕ Add Shopping Item" onClose={() => setShowAdd(false)}>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Meal</label>
+              <select className="form-select" value={form.Meal} onChange={e => setForm({...form,Meal:e.target.value})}>
+                <option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Supplies</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Category</label>
+              <select className="form-select" value={form.Category} onChange={e => setForm({...form,Category:e.target.value})}>
+                <option>Groceries</option><option>Produce</option><option>Dairy</option><option>Supplies</option>
+              </select>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Item Name *</label>
+            <input className="form-input" placeholder="e.g. Eggs" value={form.Item} onChange={e => setForm({...form,Item:e.target.value})} />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Quantity</label>
+              <input className="form-input" placeholder="e.g. 2 dozen" value={form.Quantity} onChange={e => setForm({...form,Quantity:e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Store</label>
+              <input className="form-input" placeholder="e.g. Costco" value={form.Store} onChange={e => setForm({...form,Store:e.target.value})} />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Assigned Volunteer</label>
+            <input className="form-input" placeholder="Name" value={form.Volunteer} onChange={e => setForm({...form,Volunteer:e.target.value})} />
+          </div>
+          <div className="modal-actions">
+            <button className="btn btn-outline" onClick={() => setShowAdd(false)}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleAdd}>Add Item</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Confirmation: item assigned to someone else */}
+      {confirmState && (
+        <Modal title="Confirm handoff" onClose={() => setConfirmState(null)}>
+          <p style={{marginBottom:20,lineHeight:1.55}}>
+            This item is assigned to <strong>{confirmState.item.Volunteer}</strong>.
+            Mark it as done and move it under your name (<strong>{confirmState.actingAs}</strong>)?
+          </p>
+          <div className="modal-actions">
+            <button className="btn btn-outline" onClick={() => setConfirmState(null)}>Cancel</button>
+            <button className="btn btn-primary" onClick={async () => {
+              const s = confirmState;
+              setConfirmState(null);
+              await doToggle(s.item, s.actingAs);
+            }}>Yes, mark as done</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Name picker: identity unknown */}
+      {pendingItem && (
+        <Modal title="Who are you?" onClose={() => setPendingItem(null)}>
+          <p style={{marginBottom:16,fontSize:'.88rem',color:'var(--muted)'}}>Pick your name to continue.</p>
+          <div style={{display:'flex',flexDirection:'column',gap:10,maxWidth:300,margin:'0 auto'}}>
+            {(volunteers||[]).map(v => (
+              <button key={v.Name} className="btn btn-outline"
+                style={{textAlign:'left',padding:'12px 16px',display:'flex',alignItems:'center',gap:12}}
+                onClick={() => handlePickName(v.Name)}>
+                <div style={{width:36,height:36,borderRadius:10,background:'linear-gradient(135deg,var(--green2),var(--green3))',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,flexShrink:0}}>
+                  {v.Name.charAt(0)}
+                </div>
+                <div>
+                  <div style={{fontWeight:700}}>{v.Name}</div>
+                  <div style={{fontSize:'.75rem',color:'var(--muted)'}}>{v.Family} · {v['Assigned Store']}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      {editItem && (
+        <EditItemModal
+          item={editItem}
+          volunteers={volunteers}
+          onClose={() => setEditItem(null)}
+          onSave={handleSaveEdit}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── EXPENSES ─────────────────────────────────────────────────────────────────
+function ExpensesView() {
+  const { data: expenses, loading: exLoading, reload } = useData('getExpenses');
+  const { data: summary,  loading: sumLoading }        = useData('getSummary');
+  const [showAdd, setShowAdd] = React.useState(false);
+  const [form, setForm] = React.useState({ Volunteer:'', Store:'', Item:'', Amount:'', Date: new Date().toISOString().split('T')[0] });
+
+  const handleAdd = async () => {
+    if (!form.Volunteer.trim() || !form.Amount) return;
+    const entry = { ...form, Amount: parseFloat(form.Amount)||0 };
+    if (USE_MOCK_DATA) mockState.expenses.push({ ...entry, _row: mockState.expenses.length+2 });
+    await api.post({ action:'addExpense', data: entry });
+    setShowAdd(false);
+    reload();
+  };
+
+  if (exLoading || sumLoading) return <div className="empty-state"><div className="emoji">⏳</div><p>Loading expenses…</p></div>;
+
+  return (
+    <div>
+      <div className="section-header">
+        <div className="section-title">💰 Expenses & Cost Split</div>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>+ Log Expense</button>
+      </div>
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-value">${summary?.totalCost?.toFixed(2) || '0.00'}</div>
+          <div className="stat-label">Total Spent</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{summary?.totalPeople || 0}</div>
+          <div className="stat-label">Participants</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">${summary?.costPerPerson?.toFixed(2) || '0.00'}</div>
+          <div className="stat-label">Per Person</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{Object.keys(summary?.byStore || {}).length}</div>
+          <div className="stat-label">Stores</div>
+        </div>
+      </div>
+
+      {summary?.byStore && Object.keys(summary.byStore).length > 0 && (
+        <div className="card">
+          <div className="card-header"><div className="card-title">By Store</div></div>
+          {Object.entries(summary.byStore).map(([store, amt]) => (
+            <div key={store} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
+              <span className="store-tag">🏪 {store}</span>
+              <span style={{fontWeight:700,color:'var(--green)'}}>${amt.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {summary?.familyCosts?.length > 0 && (
+        <div className="card">
+          <div className="card-header"><div className="card-title">👨‍👩‍👧‍👦 Cost Split by Family</div></div>
+          {summary.familyCosts.map(f => (
+            <div key={f.family} className="family-row">
+              <div className="family-avatar">🏕️</div>
+              <div>
+                <div style={{fontWeight:600}}>{f.family}</div>
+                <div style={{fontSize:'.78rem',color:'var(--muted)'}}>{f.members} members</div>
+              </div>
+              <div className="family-cost">${f.cost.toFixed(2)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card">
+        <div className="card-header"><div className="card-title">All Logged Expenses</div></div>
+        <div style={{overflowX:'auto'}}>
+          <table className="expense-table">
+            <thead>
+              <tr><th>Volunteer</th><th>Store</th><th>Item</th><th>Amount</th><th>Date</th></tr>
+            </thead>
+            <tbody>
+              {(expenses||[]).map((e,i) => (
+                <tr key={i}>
+                  <td style={{fontWeight:600}}>{e.Volunteer}</td>
+                  <td><span className="store-tag">{e.Store}</span></td>
+                  <td>{e.Item}</td>
+                  <td style={{fontWeight:700,color:'var(--green)'}}>${Number(e.Amount).toFixed(2)}</td>
+                  <td style={{color:'var(--muted)'}}>{e.Date}</td>
+                </tr>
+              ))}
+              {(!expenses || expenses.length===0) && (
+                <tr><td colSpan={5} style={{textAlign:'center',color:'var(--muted)',padding:'24px'}}>No expenses logged yet</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {showAdd && (
+        <Modal title="💸 Log an Expense" onClose={() => setShowAdd(false)}>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Volunteer *</label>
+              <input className="form-input" placeholder="Your name" value={form.Volunteer} onChange={e => setForm({...form,Volunteer:e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Store</label>
+              <input className="form-input" placeholder="e.g. Costco" value={form.Store} onChange={e => setForm({...form,Store:e.target.value})} />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Item(s) Purchased</label>
+            <input className="form-input" placeholder="What did you buy?" value={form.Item} onChange={e => setForm({...form,Item:e.target.value})} />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Amount ($) *</label>
+              <input className="form-input" type="number" step="0.01" min="0" placeholder="0.00" value={form.Amount} onChange={e => setForm({...form,Amount:e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Date</label>
+              <input className="form-input" type="date" value={form.Date} onChange={e => setForm({...form,Date:e.target.value})} />
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button className="btn btn-outline" onClick={() => setShowAdd(false)}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleAdd}>Log Expense</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── SIGNUPS ──────────────────────────────────────────────────────────────────
+function SignupsView() {
+  const { data, loading, reload } = useData('getSignups');
+  const [showAdd, setShowAdd]     = React.useState(false);
+  const [form, setForm] = React.useState({ Name:'', Family:'', Members:1, Nights:1, Email:'', 'Dietary Notes':'' });
+
+  const totalPeople = React.useMemo(() =>
+    (data||[]).reduce((s,p) => s + (parseInt(p.Members)||0), 0), [data]);
+
+  const handleAdd = async () => {
+    if (!form.Name.trim()) return;
+    if (USE_MOCK_DATA) mockState.signups.push({ ...form, _row: mockState.signups.length+2, 'Signed Up At': new Date().toISOString() });
+    await api.post({ action:'addSignup', data: form });
+    setShowAdd(false);
+    reload();
+  };
+
+  if (loading) return <div className="empty-state"><div className="emoji">⏳</div><p>Loading signups…</p></div>;
+
+  return (
+    <div>
+      <div className="section-header">
+        <div>
+          <div className="section-title">📝 Signups</div>
+          <div className="text-muted" style={{marginTop:4}}>
+            {(data||[]).length} families · {totalPeople} total campers
+          </div>
+        </div>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>+ Sign Up</button>
+      </div>
+
+      <div style={{background:'linear-gradient(135deg,var(--green),var(--green2))',borderRadius:'var(--radius)',padding:'24px 20px',color:'#fff',marginBottom:20,textAlign:'center'}}>
+        <div style={{fontSize:'3rem',fontWeight:900,lineHeight:1}}>{totalPeople}</div>
+        <div style={{opacity:.85,marginTop:6,fontSize:'.9rem'}}>Total Campers Registered 🏕️</div>
+      </div>
+
+      {[...(data||[])].sort((a,b) => (parseInt(b.Members)||0) - (parseInt(a.Members)||0)).map((p,i) => (
+        <div key={i} className="signup-card">
+          <div className="signup-avatar">{(p.Name||'?').charAt(0).toUpperCase()}</div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:700}}>{p.Name}</div>
+            <div style={{fontSize:'.78rem',color:'var(--muted)'}}>
+              👨‍👩‍👧 {p.Family} · {p.Members} {parseInt(p.Members)===1?'person':'people'}
+            </div>
+            {p['Dietary Notes'] && p['Dietary Notes'] !== 'None' && (
+              <div style={{fontSize:'.72rem',color:'#d97706',marginTop:3}}>⚠️ {p['Dietary Notes']}</div>
+            )}
+          </div>
+          <div style={{fontSize:'.78rem',color:'var(--muted)',textAlign:'right',flexShrink:0}}>
+            🌙 {parseInt(p.Nights)||1} {parseInt(p.Nights)===1?'night':'nights'}
+          </div>
+        </div>
+      ))}
+
+      {showAdd && (
+        <Modal title="🏕️ Sign Up for Camping!" onClose={() => setShowAdd(false)}>
+          <div className="form-group">
+            <label className="form-label">Your Name *</label>
+            <input className="form-input" placeholder="Full name" value={form.Name} onChange={e => setForm({...form,Name:e.target.value})} />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Family / Group</label>
+              <input className="form-input" placeholder="e.g. The Smiths" value={form.Family} onChange={e => setForm({...form,Family:e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label"># of People</label>
+              <input className="form-input" type="number" min="1" value={form.Members} onChange={e => setForm({...form,Members:parseInt(e.target.value)||1})} />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Number of Nights</label>
+            <div style={{display:'flex',gap:12,marginTop:4}}>
+              {[1,2].map(n => (
+                <label key={n} style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',fontWeight:form.Nights===n?700:'normal'}}>
+                  <input type="radio" name="nights" value={n} checked={form.Nights===n} onChange={() => setForm({...form,Nights:n})} />
+                  🌙 {n} {n===1?'night':'nights'}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input className="form-input" type="email" placeholder="you@example.com" value={form.Email} onChange={e => setForm({...form,Email:e.target.value})} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Dietary Notes / Allergies</label>
+            <input className="form-input" placeholder="e.g. Vegetarian x2, Nut allergy" value={form['Dietary Notes']} onChange={e => setForm({...form,'Dietary Notes':e.target.value})} />
+          </div>
+          <div className="modal-actions">
+            <button className="btn btn-outline" onClick={() => setShowAdd(false)}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleAdd}>Sign Me Up! 🎉</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── VOLUNTEERS ───────────────────────────────────────────────────────────────
+function VolunteersView() {
+  const { data: volunteers, loading }          = useData('getVolunteers');
+  const { data: shopping, setData: setShopping } = useData('getShopping');
+  const [pendingRow, setPendingRow] = React.useState(null);
+
+  const itemsByVolunteer = React.useMemo(() => {
+    return (shopping||[]).reduce((acc, item) => {
+      const rawVolunteer = String(item.Volunteer || '').trim();
+      const match = (volunteers || []).find(v => matchesVolunteer(rawVolunteer, v.Name));
+      const key = match ? match.Name : (rawVolunteer || 'Unassigned');
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(item);
+      return acc;
+    }, {});
+  }, [shopping, volunteers]);
+
+  const toggleStatus = async (item) => {
+    if (pendingRow !== null) return;
+    setPendingRow(item._row);
+    try {
+      const newStatus = isDone(item.Status) ? 'Pending' : 'Purchased';
+      if (USE_MOCK_DATA) {
+        const idx = mockState.shopping.findIndex(i => i._row === item._row);
+        if (idx !== -1) mockState.shopping[idx].Status = newStatus;
+      }
+      await api.post({ action:'updateStatus', id:item.ID, row:item._row, status:newStatus });
+      setShopping(prev => prev.map(i => i._row === item._row ? {...i, Status:newStatus} : i));
+    } finally {
+      setPendingRow(null);
+    }
+  };
+
+  if (loading) return <div className="empty-state"><div className="emoji">⏳</div><p>Loading volunteers…</p></div>;
+
+  return (
+    <div>
+      <div className="section-header">
+        <div className="section-title">🙋 Volunteers</div>
+      </div>
+      {(volunteers||[]).map((v,i) => {
+        const items = itemsByVolunteer[v.Name] || [];
+        const done  = items.filter(i => isDone(i.Status)).length;
+        return (
+          <div key={i} className="card">
+            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:items.length>0?12:0}}>
+              <div style={{width:46,height:46,borderRadius:12,background:'linear-gradient(135deg,var(--green2),var(--green3))',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,fontSize:'1.15rem',flexShrink:0}}>
+                {v.Name.charAt(0)}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700}}>{v.Name}</div>
+                <div style={{fontSize:'.78rem',color:'var(--muted)'}}>👨‍👩‍👧 {v.Family} · 🏪 {v['Assigned Store']}</div>
+              </div>
+              <div style={{textAlign:'right'}}>
+                <div style={{fontWeight:800,color: done===items.length && items.length>0 ? 'var(--green)' : 'var(--text)'}}>{done}/{items.length}</div>
+                <div style={{fontSize:'.7rem',color:'var(--muted)'}}>items done</div>
+              </div>
+            </div>
+            {items.length > 0 && (
+              <div style={{borderTop:'1px solid var(--border)',paddingTop:10}}>
+                {items.map((item,j) => (
+                  <button
+                    key={j}
+                    onClick={() => toggleStatus(item)}
+                    disabled={pendingRow !== null}
+                    style={{display:'flex',alignItems:'center',gap:8,padding:'6px 4px',fontSize:'.82rem',width:'100%',background:'none',border:'none',borderRadius:6,cursor:pendingRow===null?'pointer':'default',textAlign:'left',transition:'background .15s'}}
+                    onMouseEnter={e => { if(pendingRow===null) e.currentTarget.style.background='var(--hover,rgba(0,0,0,.04))'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background='none'; }}
+                  >
+                    <span style={{fontSize:'1rem'}}>{pendingRow===item._row ? '⏳' : isDone(item.Status) ? '✅' : '⬜'}</span>
+                    <span style={{flex:1,textDecoration:isDone(item.Status)?'line-through':'none',color:isDone(item.Status)?'var(--muted)':'var(--text)'}}>
+                      {item.Item}
+                    </span>
+                    <span style={{color:'var(--muted)',fontSize:'.72rem'}}>{item.Quantity}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── MY VIEW ──────────────────────────────────────────────────────────────────
+function MyView({ myName, saveName }) {
+  const { data: volunteers } = useData('getVolunteers');
+  const { data: shopping, setData: setShopping } = useData('getShopping');
+  const { data: schedule }  = useData('getSchedule');
+  const { data: expenses }  = useData('getExpenses');
+  const [pendingRow, setPendingRow] = React.useState(null);
+  const [editItem, setEditItem] = React.useState(null);
+
+  const handleSaveEdit = async (item, form) => {
+    if (USE_MOCK_DATA) {
+      const idx = mockState.shopping.findIndex(i => i._row === item._row);
+      if (idx !== -1) mockState.shopping[idx] = { ...mockState.shopping[idx], ...form };
+    }
+    await api.post({ action: 'updateShoppingItem', id: item.ID, row: item._row, data: form });
+    setShopping(prev => prev.map(i => i._row === item._row ? { ...i, ...form } : i));
+  };
+
+  const myItems    = React.useMemo(() => (shopping||[]).filter(i => matchesVolunteer(i.Volunteer, myName)), [shopping, myName]);
+  const mySchedule = React.useMemo(() => (schedule||[]).filter(i => matchesVolunteer(i['Assigned Volunteer'], myName) || normalizeText(i['Assigned Volunteer']) === 'all'), [schedule, myName]);
+  const myExpenses = React.useMemo(() => (expenses||[]).filter(e => normalizeText(e.Volunteer) === normalizeText(myName)), [expenses, myName]);
+  const myTotal    = myExpenses.reduce((s, e) => s + (parseFloat(e.Amount)||0), 0);
+  const myDone     = myItems.filter(i => isDone(i.Status)).length;
+
+  const toggleStatus = async (item) => {
+    if (pendingRow !== null) return;
+    setPendingRow(item._row);
+    try {
+      const newStatus = isDone(item.Status) ? 'Pending' : 'Purchased';
+      if (USE_MOCK_DATA) {
+        const idx = mockState.shopping.findIndex(i => i._row === item._row);
+        if (idx !== -1) mockState.shopping[idx].Status = newStatus;
+      }
+      await api.post({ action:'updateStatus', id:item.ID, row:item._row, status:newStatus });
+      setShopping(prev => prev.map(i => i._row === item._row ? {...i, Status:newStatus} : i));
+    } finally {
+      setPendingRow(null);
+    }
+  };
+
+  if (!myName) {
+    return (
+      <div>
+        <div className="empty-state" style={{paddingTop:50}}>
+          <div className="emoji">👤</div>
+          <p style={{fontWeight:700,fontSize:'1.1rem',marginBottom:6}}>Who are you?</p>
+          <p style={{marginBottom:24,fontSize:'.88rem'}}>Pick your name to see only your tasks.</p>
+          <div style={{display:'flex',flexDirection:'column',gap:10,maxWidth:300,margin:'0 auto'}}>
+            {(volunteers||[]).map(v => (
+              <button key={v.Name} className="btn btn-outline"
+                style={{textAlign:'left',padding:'12px 16px',display:'flex',alignItems:'center',gap:12}}
+                onClick={() => saveName(v.Name)}>
+                <div style={{width:36,height:36,borderRadius:10,background:'linear-gradient(135deg,var(--green2),var(--green3))',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,flexShrink:0}}>
+                  {v.Name.charAt(0)}
+                </div>
+                <div>
+                  <div style={{fontWeight:700}}>{v.Name}</div>
+                  <div style={{fontSize:'.75rem',color:'var(--muted)'}}>{v.Family} · {v['Assigned Store']}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Identity bar */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,padding:'12px 16px',background:'var(--card)',borderRadius:'var(--radius)',boxShadow:'var(--shadow)'}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{width:42,height:42,borderRadius:12,background:'linear-gradient(135deg,var(--green2),var(--green3))',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,fontSize:'1.15rem',flexShrink:0}}>
+            {myName.charAt(0)}
+          </div>
+          <div>
+            <div style={{fontWeight:700}}>Hi, {myName}! 👋</div>
+            <div style={{fontSize:'.75rem',color:'var(--muted)'}}>Your personal task view</div>
+          </div>
+        </div>
+        <button className="btn btn-outline btn-sm" onClick={() => saveName('')}>Change</button>
+      </div>
+
+      {/* Stats */}
+      <div className="stats-grid" style={{marginBottom:20}}>
+        <div className="stat-card">
+          <div className="stat-value">{myDone}/{myItems.length}</div>
+          <div className="stat-label">Items Bought</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{mySchedule.filter(i => i['Assigned Volunteer'] !== 'All').length}</div>
+          <div className="stat-label">My Duties</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">${myTotal.toFixed(2)}</div>
+          <div className="stat-label">I've Spent</div>
+        </div>
+      </div>
+
+      {/* My Shopping */}
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">🛒 My Shopping</div>
+          <span style={{fontSize:'.78rem',color: myDone===myItems.length && myItems.length>0 ? 'var(--green)' : 'var(--muted)',fontWeight:600}}>
+            {myItems.length === 0 ? 'none assigned' : myDone===myItems.length ? '✓ All done!' : `${myDone} of ${myItems.length} done`}
+          </span>
+        </div>
+        {myItems.length === 0 ? (
+          <div style={{color:'var(--muted)',fontSize:'.85rem',padding:'4px 0 8px'}}>No items assigned to you.</div>
+        ) : (
+          <div className="item-tiles-grid">
+            {myItems.map(item => {
+              const isLoading = pendingRow === item._row;
+              return (
+                <button key={item._row}
+                  className={`item-tile${isDone(item.Status) ? ' item-tile--done' : ''}${isLoading ? ' item-tile--loading' : ''}`}
+                  onClick={() => toggleStatus(item)}
+                  disabled={pendingRow !== null}>
+                  <div className="item-tile-edit-btn"
+                    onClick={e => { e.stopPropagation(); setEditItem(item); }}
+                    title="Edit item"
+                  >✏️</div>
+                  {isLoading
+                    ? <div className="item-tile-spinner" />
+                    : isDone(item.Status) && <div className="item-tile-check">✓</div>
+                  }
+                  <div className="item-tile-name">{item.Item}</div>
+                  <div className="item-tile-qty">{item.Quantity}</div>
+                  <div className="item-tile-meal">{MEAL_ICONS[item.Meal] || '🍽️'} {item.Meal}</div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* My Schedule */}
+      <div className="card">
+        <div className="card-header"><div className="card-title">📅 My Schedule</div></div>
+        {mySchedule.length === 0 ? (
+          <div style={{color:'var(--muted)',fontSize:'.85rem',padding:'4px 0 8px'}}>No schedule items assigned to you.</div>
+        ) : (
+          mySchedule.map((item, i) => (
+            <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 0',borderBottom: i < mySchedule.length-1 ? '1px solid var(--border)' : 'none'}}>
+              <div className="meal-icon" style={{background: MEAL_COLORS[item.Meal] || '#f3f4f6', flexShrink:0}}>
+                {MEAL_ICONS[item.Meal] || '📌'}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:'.75rem',color:'var(--muted)',fontWeight:600}}>Day {item.Day} · {item.Meal}{item['Assigned Volunteer']==='All' ? ' · 👥 Everyone' : ''}</div>
+                <div style={{fontWeight:700,fontSize:'.88rem',marginTop:1}}>{item.Item}</div>
+                {item.Details && <div style={{fontSize:'.76rem',color:'var(--muted)',marginTop:2}}>{item.Details}</div>}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* My Expenses */}
+      {myExpenses.length > 0 && (
+        <div className="card">
+          <div className="card-header">
+            <div className="card-title">💸 My Expenses</div>
+            <span style={{fontWeight:800,color:'var(--green)'}}>${myTotal.toFixed(2)}</span>
+          </div>
+          {myExpenses.map((e, i) => (
+            <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom: i < myExpenses.length-1 ? '1px solid var(--border)' : 'none'}}>
+              <div>
+                <div style={{fontWeight:600,fontSize:'.85rem'}}>{e.Item}</div>
+                <div style={{fontSize:'.73rem',color:'var(--muted)'}}>{e.Store} · {e.Date}</div>
+              </div>
+              <div style={{fontWeight:700,color:'var(--green)'}}>${Number(e.Amount).toFixed(2)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editItem && (
+        <EditItemModal
+          item={editItem}
+          volunteers={volunteers}
+          onClose={() => setEditItem(null)}
+          onSave={handleSaveEdit}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── SYNC BUTTON ──────────────────────────────────────────────────────────────
+function SyncButton() {
+  const { isOnline, isSyncing, lastSyncAt, pendingCount, sync } = React.useContext(SyncContext);
+  const [, tick] = React.useReducer(x => x + 1, 0);
+
+  // Re-render every 30s so "X min ago" text stays current
+  React.useEffect(() => { const t = setInterval(tick, 30000); return () => clearInterval(t); }, []);
+
+  const label = () => {
+    if (!isOnline) return pendingCount > 0 ? `Offline · ${pendingCount} pending` : 'Offline';
+    if (isSyncing) return 'Syncing…';
+    if (!lastSyncAt) return 'Sync now';
+    const mins = Math.round((Date.now() - lastSyncAt) / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins === 1) return '1 min ago';
+    if (mins < 60) return `${mins}m ago`;
+    return `${Math.floor(mins / 60)}h ago`;
+  };
+
+  return (
+    <button
+      className={`sync-btn${!isOnline ? ' offline' : ''}`}
+      onClick={sync}
+      disabled={isSyncing || !isOnline}
+      title={isOnline ? 'Sync with Google Sheets' : 'You are offline'}
+    >
+      <span className={`sync-icon${isSyncing ? ' spin' : ''}`}>⟳</span>
+      <span>{label()}</span>
+      {pendingCount > 0 && !isSyncing && <span className="sync-badge">{pendingCount}</span>}
+    </button>
+  );
+}
+
+// ─── APP ROOT ─────────────────────────────────────────────────────────────────
+const TABS = [
+  { id:'myview',     label:'👤 My View'   },
+  { id:'schedule',   label:'📅 Schedule'  },
+  { id:'shopping',   label:'🛒 Shopping'  },
+  { id:'expenses',   label:'💰 Expenses'  },
+  { id:'signups',    label:'📝 Signups'   },
+  { id:'volunteers', label:'🙋 Volunteers'},
+];
+
+function App() {
+  const [tab, setTab]       = React.useState('myview');
+  const [myName, setMyName] = React.useState(() => localStorage.getItem('camping_my_name') || '');
+  const { isOnline, pendingCount } = React.useContext(SyncContext);
+
+  const saveName = (name) => {
+    setMyName(name);
+    localStorage.setItem('camping_my_name', name);
+  };
+
+  const tabLabel = (t) => {
+    if (t.id === 'myview') return myName ? `👤 ${myName.split(' ')[0]}` : '👤 My View';
+    return t.label;
+  };
+
+  return (
+    <div>
+      <div className="app-header">
+        <div className="header-top">
+          <h1>🏕️ Camping Planner</h1>
+          <SyncButton />
+        </div>
+        <div className="nav-tabs">
+          {TABS.map(t => (
+            <button key={t.id}
+              className={`nav-tab ${tab===t.id?'active':''}`}
+              onClick={() => setTab(t.id)}>
+              {tabLabel(t)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="page">
+        {!isOnline && (
+          <div className="offline-banner">
+            <span>📵</span>
+            <span>You're offline — showing cached data.{pendingCount > 0 ? ` ${pendingCount} change${pendingCount !== 1 ? 's' : ''} will sync on reconnect.` : ''}</span>
+          </div>
+        )}
+        {USE_MOCK_DATA && (
+          <div className="config-banner">
+            <span>⚠️</span>
+            <div>
+              <strong>Demo Mode</strong> — using sample data.
+              To connect live Google Sheets: deploy <code>apps-script/Code.gs</code> as a Web App,
+              paste the URL into <code>APPS_SCRIPT_URL</code> at the top of this file,
+              then set <code>USE_MOCK_DATA = false</code>.
+            </div>
+          </div>
+        )}
+        {tab === 'myview'    && <MyView myName={myName} saveName={saveName} />}
+        {tab === 'schedule'  && <ScheduleView />}
+        {tab === 'shopping'  && <ShoppingView myName={myName} saveName={saveName} />}
+        {tab === 'expenses'  && <ExpensesView />}
+        {tab === 'signups'   && <SignupsView />}
+        {tab === 'volunteers' && <VolunteersView />}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<SyncProvider><App /></SyncProvider>);
+</script>
+</body>
+</html>
