@@ -68,6 +68,7 @@ function doPost(e) {
       case 'updateShoppingItem': result = updateShoppingItem(body.id, body.row, body.data); break;
       case 'updateSchedule':     result = updateScheduleItem(body.row, body.data);     break;
       case 'addScheduleItem':    result = addScheduleItem(body.data);                  break;
+      case 'updateExpense':      result = updateExpense(body.row, body.data);          break;
       default:                   result = { error: 'Unknown action: ' + action };
     }
 
@@ -202,9 +203,28 @@ function addSignup(data) {
 }
 
 function addExpense(data) {
-  const headers = ['Volunteer', 'Store', 'Item', 'Amount', 'Receipt', 'Date'];
+  const headers = ['Volunteer', 'Store', 'Item', 'Amount', 'Receipt', 'Date', 'Applies To Families', 'Applies To Counts', 'Paid By Families'];
   data['Date'] = data['Date'] || new Date().toISOString().split('T')[0];
   return appendRow(SHEETS.EXPENSES, headers, data);
+}
+
+function updateExpense(rowNum, data) {
+  const fields = ['Volunteer', 'Store', 'Item', 'Amount', 'Date', 'Applies To Families', 'Applies To Counts', 'Paid By Families'];
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEETS.EXPENSES);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+
+  fields.forEach(field => {
+    if (data[field] === undefined) return;
+    let colIdx = headers.indexOf(field);
+    if (colIdx === -1) {
+      sheet.getRange(1, headers.length + 1).setValue(field);
+      headers.push(field);
+      colIdx = headers.length - 1;
+    }
+    sheet.getRange(rowNum, colIdx + 1).setValue(data[field]);
+  });
+  return { updated: true, row: rowNum };
 }
 
 function addShoppingItem(data) {
@@ -269,7 +289,7 @@ function setupSheetHeaders() {
     'ShoppingList': ['ID', 'Meal', 'Category', 'Item', 'Quantity', 'Store', 'Volunteer', 'Status', 'Cost'],
     'Volunteers':   ['Name', 'Family', 'Assigned Store', 'Phone'],
     'Families':     ['Family Name', 'Members', 'Contact', 'Email'],
-    'Expenses':     ['Volunteer', 'Store', 'Item', 'Amount', 'Receipt', 'Date'],
+    'Expenses':     ['Volunteer', 'Store', 'Item', 'Amount', 'Receipt', 'Date', 'Applies To Families', 'Applies To Counts', 'Paid By Families'],
     'Signups':      ['Name', 'Family', 'Members', 'Nights', 'Email', 'Dietary Notes', 'Signed Up At'],
   };
 
