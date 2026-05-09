@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Camping Planner — Behind the Scenes</title>
+<style>
+  :root {
+    --green: #2d6a4f;
+    --green-light: #40916c;
+    --green-pale: #d8f3dc;
+    --amber: #e9c46a;
+    --amber-dark: #f4a261;
+    --blue: #2196f3;
+    --blue-pale: #e3f2fd;
+    --purple: #7c3aed;
+    --purple-pale: #ede9fe;
+    --red: #e63946;
+    --bg: #f8fafb;
+    --card: #ffffff;
+    --text: #1a202c;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(0,0,0,.08);
+    --shadow-lg: 0 12px 48px rgba(0,0,0,.14);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 5%;
+    display: flex; align-items: center; gap: 32px;
+    height: 60px;
+  }
+  nav .brand { font-weight: 700; font-size: 1.1rem; color: var(--green); white-space: nowrap; }
+  nav a {
+    color: var(--muted); text-decoration: none; font-size: .9rem;
+    transition: color .2s; white-space: nowrap;
+  }
+  nav a:hover { color: var(--green); }
+  nav .cta {
+    margin-left: auto;
+    background: var(--green); color: #fff;
+    padding: 8px 18px; border-radius: 8px; font-size: .85rem;
+    font-weight: 600; text-decoration: none; transition: background .2s;
+  }
+  nav .cta:hover { background: var(--green-light); }
+
+  /* ─── LAYOUT ─── */
+  section { padding: 80px 5%; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h2 { font-size: 2rem; font-weight: 800; margin-bottom: 12px; }
+  h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; }
+  p { color: var(--muted); }
+  .label {
+    display: inline-block; font-size: .75rem; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    background: var(--green-pale); color: var(--green);
+    padding: 4px 10px; border-radius: 20px; margin-bottom: 14px;
+  }
+
+  /* ─── HERO ─── */
+  #hero {
+    background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 50%, #40916c 100%);
+    color: #fff;
+    padding: 100px 5% 80px;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+  #hero::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  #hero .eyebrow {
+    display: inline-block; background: rgba(255,255,255,.15);
+    padding: 5px 14px; border-radius: 20px;
+    font-size: .85rem; font-weight: 600; letter-spacing: .05em;
+    margin-bottom: 24px;
+  }
+  #hero h1 {
+    font-size: clamp(2.2rem, 5vw, 3.6rem);
+    font-weight: 900; line-height: 1.15;
+    margin-bottom: 20px;
+    text-shadow: 0 2px 20px rgba(0,0,0,.2);
+  }
+  #hero h1 span { color: var(--amber); }
+  #hero .sub {
+    font-size: 1.15rem; opacity: .85; max-width: 620px;
+    margin: 0 auto 40px; line-height: 1.7;
+  }
+  .hero-pills {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    justify-content: center; margin-bottom: 48px;
+  }
+  .hero-pill {
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.25);
+    padding: 6px 16px; border-radius: 20px;
+    font-size: .85rem; font-weight: 500;
+  }
+  .hero-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary {
+    background: var(--amber); color: #1a202c;
+    padding: 14px 28px; border-radius: 10px;
+    font-weight: 700; font-size: 1rem; text-decoration: none;
+    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 4px 16px rgba(0,0,0,.2);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+  .btn-ghost {
+    background: rgba(255,255,255,.12);
+    border: 1.5px solid rgba(255,255,255,.35);
+    color: #fff; padding: 14px 28px; border-radius: 10px;
+    font-weight: 600; font-size: 1rem; text-decoration: none;
+    transition: background .2s;
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,.22); }
+
+  /* stat row */
+  .stat-row {
+    display: flex; flex-wrap: wrap; gap: 24px;
+    justify-content: center; margin-top: 60px;
+  }
+  .stat-card {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    padding: 20px 28px; border-radius: var(--radius);
+    text-align: center; min-width: 140px;
+  }
+  .stat-card .num {
+    font-size: 2.2rem; font-weight: 900; color: var(--amber);
+    line-height: 1;
+  }
+  .stat-card .desc { font-size: .8rem; opacity: .75; margin-top: 4px; }
+
+  /* ─── PROBLEM / SOLUTION ─── */
+  #problem { background: #fff; }
+  .ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 48px; }
+  .ps-box { padding: 32px; border-radius: var(--radius); }
+  .ps-box.before {
+    background: #fff5f5; border: 1.5px solid #fed7d7;
+  }
+  .ps-box.after {
+    background: var(--green-pale); border: 1.5px solid #b7e4c7;
+  }
+  .ps-box .tag {
+    font-size: .75rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; margin-bottom: 16px;
+  }
+  .ps-box.before .tag { color: var(--red); }
+  .ps-box.after .tag { color: var(--green); }
+  .ps-box ul { list-style: none; }
+  .ps-box ul li {
+    padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,.06);
+    font-size: .95rem; display: flex; align-items: flex-start; gap: 10px;
+  }
+  .ps-box ul li:last-child { border-bottom: none; }
+  .ps-box ul li .icon { font-size: 1.1rem; flex-shrink: 0; }
+
+  /* ─── FEATURES ─── */
+  #features { background: var(--bg); }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px; margin-top: 48px;
+  }
+  .feat-card {
+    background: var(--card); border-radius: var(--radius);
+    padding: 28px; border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .feat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+  .feat-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; margin-bottom: 16px;
+  }
+  .feat-card ul {
+    list-style: none; margin-top: 12px;
+  }
+  .feat-card ul li {
+    font-size: .875rem; color: var(--muted);
+    padding: 4px 0; display: flex; gap: 8px; align-items: flex-start;
+  }
+  .feat-card ul li::before { content: "→"; color: var(--green-light); flex-shrink: 0; }
+
+  /* ─── ARCHITECTURE ─── */
+  #architecture { background: #0f172a; color: #e2e8f0; }
+  #architecture h2 { color: #fff; }
+  #architecture p { color: #94a3b8; }
+  #architecture .label { background: rgba(45,106,79,.4); color: #6ee7b7; }
+
+  .arch-diagram {
+    background: #1e293b; border-radius: var(--radius);
+    padding: 40px; margin-top: 40px;
+    border: 1px solid #334155;
+    font-family: "SF Mono", "Fira Code", monospace;
+  }
+  .arch-layers {
+    display: flex; gap: 0; align-items: stretch;
+    flex-wrap: wrap;
+  }
+  .arch-layer {
+    flex: 1; min-width: 220px;
+    border: 1.5px solid #334155; border-radius: 12px;
+    overflow: hidden; position: relative;
+  }
+  .arch-layer + .arch-layer { margin-left: -1px; }
+  .arch-layer-head {
+    padding: 14px 20px; font-size: .8rem; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+  }
+  .arch-layer-body { padding: 20px; }
+  .arch-tech-pill {
+    display: inline-block;
+    padding: 5px 12px; border-radius: 6px;
+    font-size: .78rem; font-weight: 600;
+    margin: 3px 2px;
+  }
+  .arch-detail { font-size: .82rem; color: #64748b; margin-top: 12px; line-height: 1.7; }
+
+  .arch-arrow {
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 8px; color: #475569; font-size: 1.5rem;
+    flex-shrink: 0; align-self: center;
+  }
+
+  .layer-user  { --lc: #3b82f6; }
+  .layer-front { --lc: #8b5cf6; }
+  .layer-script { --lc: #10b981; }
+  .layer-sheets { --lc: #f59e0b; }
+
+  .arch-layer-head  { background: rgba(var(--lc-raw, 59,130,246),.15); color: var(--lc); }
+  .layer-user  .arch-layer-head  { background: rgba(59,130,246,.15);  color: #60a5fa; }
+  .layer-front .arch-layer-head  { background: rgba(139,92,246,.15);  color: #a78bfa; }
+  .layer-script .arch-layer-head { background: rgba(16,185,129,.15);  color: #6ee7b7; }
+  .layer-sheets .arch-layer-head { background: rgba(245,158,11,.15);  color: #fcd34d; }
+
+  .layer-user  .arch-tech-pill { background: rgba(59,130,246,.2);  color: #93c5fd; }
+  .layer-front .arch-tech-pill { background: rgba(139,92,246,.2);  color: #c4b5fd; }
+  .layer-script .arch-tech-pill { background: rgba(16,185,129,.2); color: #6ee7b7; }
+  .layer-sheets .arch-tech-pill { background: rgba(245,158,11,.2); color: #fcd34d; }
+
+  /* data flow */
+  .data-flow {
+    margin-top: 36px; background: #1e293b;
+    border-radius: 12px; padding: 24px;
+    border: 1px solid #334155;
+  }
+  .flow-title { font-size: .8rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: #64748b; margin-bottom: 16px; }
+  .flow-steps {
+    display: flex; gap: 0; flex-wrap: wrap;
+  }
+  .flow-step {
+    flex: 1; min-width: 160px;
+    padding: 16px; border-right: 1px solid #334155;
+    position: relative;
+  }
+  .flow-step:last-child { border-right: none; }
+  .flow-step .num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--green); color: #fff;
+    font-size: .8rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px;
+  }
+  .flow-step .title { font-size: .85rem; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+  .flow-step .desc { font-size: .78rem; color: #64748b; line-height: 1.6; }
+
+  /* offline badge */
+  .offline-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(139,92,246,.2); color: #c4b5fd;
+    border: 1px solid rgba(139,92,246,.3);
+    padding: 6px 14px; border-radius: 20px;
+    font-size: .8rem; font-weight: 600;
+    margin-top: 16px;
+  }
+  .pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #a78bfa;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .5; transform: scale(.7); }
+  }
+
+  /* ─── COST ─── */
+  #cost { background: var(--bg); }
+  .cost-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 48px; }
+  .cost-comparison {
+    background: var(--card); border-radius: var(--radius);
+    padding: 28px; border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  .cost-comparison h3 { margin-bottom: 20px; }
+  .cost-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+    font-size: .9rem;
+  }
+  .cost-row:last-child { border-bottom: none; }
+  .cost-row .service { color: var(--text); }
+  .cost-row .price { font-weight: 700; }
+  .cost-row .price.expensive { color: var(--red); }
+  .cost-row .price.free { color: var(--green); font-size: 1.1rem; }
+  .cost-total {
+    margin-top: 16px; padding: 14px 16px;
+    border-radius: 10px; text-align: right;
+    font-size: 1.4rem; font-weight: 900;
+  }
+  .cost-total.expensive { background: #fff5f5; color: var(--red); }
+  .cost-total.free { background: var(--green-pale); color: var(--green); }
+
+  .why-free {
+    background: var(--card); border-radius: var(--radius);
+    padding: 28px; border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  .why-free h3 { margin-bottom: 16px; }
+  .why-item {
+    display: flex; gap: 14px; margin-bottom: 20px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--border);
+  }
+  .why-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .why-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+  }
+  .why-item .body .title { font-weight: 700; font-size: .95rem; margin-bottom: 4px; }
+  .why-item .body .desc { font-size: .85rem; color: var(--muted); line-height: 1.6; }
+
+  /* ─── HOW TO BUILD ─── */
+  #howto { background: #fff; }
+  .steps { margin-top: 48px; }
+  .step {
+    display: flex; gap: 24px; margin-bottom: 40px;
+    padding-bottom: 40px; border-bottom: 1px dashed var(--border);
+  }
+  .step:last-child { border-bottom: none; margin-bottom: 0; }
+  .step-num {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--green), var(--green-light));
+    color: #fff; font-size: 1.2rem; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; box-shadow: 0 4px 12px rgba(45,106,79,.3);
+  }
+  .step-body { flex: 1; }
+  .step-body h3 { margin-bottom: 6px; }
+  .step-body p { margin-bottom: 14px; }
+  .code-block {
+    background: #0f172a; color: #e2e8f0;
+    border-radius: 10px; padding: 18px 20px;
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: .82rem; line-height: 1.8;
+    overflow-x: auto; border: 1px solid #1e293b;
+  }
+  .code-block .comment { color: #64748b; }
+  .code-block .keyword { color: #a78bfa; }
+  .code-block .string { color: #6ee7b7; }
+  .code-block .fn { color: #60a5fa; }
+  .step-tip {
+    margin-top: 14px;
+    background: #fffbeb; border: 1px solid #fde68a;
+    border-radius: 8px; padding: 12px 16px;
+    font-size: .85rem; color: #78350f;
+    display: flex; gap: 8px;
+  }
+
+  /* ─── POWER ─── */
+  #power { background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%); color: #fff; }
+  #power h2 { color: #fff; }
+  #power .label { background: rgba(255,255,255,.15); color: #d8f3dc; }
+  #power p { color: rgba(255,255,255,.75); }
+
+  .power-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 24px; margin-top: 48px;
+  }
+  .power-card {
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: var(--radius); padding: 28px;
+    transition: background .2s;
+  }
+  .power-card:hover { background: rgba(255,255,255,.13); }
+  .power-card .icon { font-size: 2rem; margin-bottom: 16px; }
+  .power-card h3 { color: #fff; margin-bottom: 8px; }
+  .power-card p { color: rgba(255,255,255,.65); font-size: .9rem; }
+
+  .use-cases {
+    margin-top: 56px; text-align: center;
+  }
+  .use-cases h3 { color: #fff; font-size: 1.4rem; margin-bottom: 20px; }
+  .use-case-pills {
+    display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+  }
+  .use-case-pill {
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2);
+    padding: 8px 18px; border-radius: 24px;
+    font-size: .9rem; color: rgba(255,255,255,.9);
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: #0f172a; color: #64748b;
+    padding: 40px 5%; text-align: center;
+    font-size: .85rem; line-height: 1.8;
+  }
+  footer a { color: #94a3b8; text-decoration: none; }
+  footer a:hover { color: #fff; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 768px) {
+    nav a { display: none; }
+    .ps-grid { grid-template-columns: 1fr; }
+    .cost-grid { grid-template-columns: 1fr; }
+    .arch-layers { flex-direction: column; }
+    .arch-layer + .arch-layer { margin-left: 0; margin-top: -1px; }
+    .arch-arrow { transform: rotate(90deg); padding: 8px 0; }
+    .flow-steps { flex-direction: column; }
+    .flow-step { border-right: none; border-bottom: 1px solid #334155; }
+    .step { flex-direction: column; gap: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="brand">⛺ Camping Planner</span>
+  <a href="#problem">Problem</a>
+  <a href="#features">Features</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#cost">Cost</a>
+  <a href="#howto">Build It</a>
+  <a href="#power">Power</a>
+  <a class="cta" href="https://suryaraor.github.io/camping-demo/" target="_blank">Live App →</a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="container">
+    <span class="eyebrow">⛺ Behind the Scenes</span>
+    <h1>A Full-Stack App Built with<br/><span>Zero Infrastructure</span></h1>
+    <p class="sub">
+      A real group camping coordinator — with scheduling, shopping, expense splitting, and volunteer management — powered entirely by a single HTML file and Google Sheets.
+    </p>
+    <div class="hero-pills">
+      <span class="hero-pill">📄 1 HTML file</span>
+      <span class="hero-pill">🏗️ No build step</span>
+      <span class="hero-pill">💾 Google Sheets as DB</span>
+      <span class="hero-pill">📡 Works offline</span>
+      <span class="hero-pill">💰 $0/month</span>
+      <span class="hero-pill">🚀 Deploy in minutes</span>
+    </div>
+    <div class="hero-btns">
+      <a class="btn-primary" href="https://suryaraor.github.io/camping-demo/" target="_blank">See the Live App</a>
+      <a class="btn-ghost" href="#architecture">How It Works ↓</a>
+    </div>
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="num">1</div>
+        <div class="desc">HTML file total</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">$0</div>
+        <div class="desc">Monthly cost</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">6</div>
+        <div class="desc">App features</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">~10 min</div>
+        <div class="desc">To deploy your own</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">0</div>
+        <div class="desc">Servers to manage</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM / SOLUTION -->
+<section id="problem">
+  <div class="container">
+    <span class="label">The Problem</span>
+    <h2>Group trips are a coordination nightmare</h2>
+    <p>Spreadsheets break, group chats overflow, and nobody knows who's buying what.</p>
+    <div class="ps-grid">
+      <div class="ps-box before">
+        <div class="tag">❌ Without this app</div>
+        <ul>
+          <li><span class="icon">📱</span> Group chat explodes with "who's bringing the cooler?"</li>
+          <li><span class="icon">💸</span> Venmo requests fly in every direction — nobody knows the final tally</li>
+          <li><span class="icon">🛒</span> Duplicate grocery buys, forgotten items, wrong quantities</li>
+          <li><span class="icon">📋</span> Meal planning lives in three different Google Docs</li>
+          <li><span class="icon">😤</span> Volunteers don't know their assignments until they arrive</li>
+          <li><span class="icon">🔁</span> "Who signed up for Friday dinner?" sent 12 times</li>
+        </ul>
+      </div>
+      <div class="ps-box after">
+        <div class="tag">✅ With this app</div>
+        <ul>
+          <li><span class="icon">📅</span> Everyone sees the full trip schedule with meal assignments</li>
+          <li><span class="icon">💰</span> Expense split computed automatically — fair, per-family, per-portion</li>
+          <li><span class="icon">🛒</span> One shared shopping list, grouped by store, tracked in real time</li>
+          <li><span class="icon">👥</span> Volunteers know exactly what they're responsible for</li>
+          <li><span class="icon">✍️</span> Families register once — dietary restrictions saved, no repeat questions</li>
+          <li><span class="icon">📡</span> Works even when the campsite has no signal</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <span class="label">Features</span>
+    <h2>Everything a group trip needs</h2>
+    <p>Six coordinated views, one shared data source.</p>
+    <div class="features-grid">
+
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#e0f2fe;">📅</div>
+        <h3>Trip Schedule</h3>
+        <p>Day-by-day meal and activity planner with volunteer assignments and status tracking.</p>
+        <ul>
+          <li>Grouped by day and meal type (Breakfast / Lunch / Dinner / Activity)</li>
+          <li>Meal icons and color coding per type</li>
+          <li>Mark items Planned → Done</li>
+          <li>Add or edit schedule items inline</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#fef9c3;">🛒</div>
+        <h3>Shopping List</h3>
+        <p>Shared grocery tracker grouped by store and volunteer, with a real-time progress bar.</p>
+        <ul>
+          <li>Per-store progress and completion status</li>
+          <li>Tile grid UI for fast scanning on a phone</li>
+          <li>Mark as Purchased (with confirmation if assigned to someone else)</li>
+          <li>Edit quantity, store, or assignee</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#dcfce7;">💰</div>
+        <h3>Expenses &amp; Cost Split</h3>
+        <p>Log what was spent, by whom, and let the app figure out who owes what.</p>
+        <ul>
+          <li>Flexible allocation: all families or a subset</li>
+          <li>Custom per-family portion counts</li>
+          <li>Settlement plan: minimum-transfer algorithm</li>
+          <li>Per-store and per-family breakdown modals</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#fce7f3;">✍️</div>
+        <h3>Family Signups</h3>
+        <p>One-click registration with headcount, nights attending, and dietary notes.</p>
+        <ul>
+          <li>Auto-timestamp on submission</li>
+          <li>Family member list with dietary restrictions</li>
+          <li>Drives cost-split denominator automatically</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#ede9fe;">👥</div>
+        <h3>Volunteers</h3>
+        <p>Roster of volunteers with store assignments and contact info.</p>
+        <ul>
+          <li>Family affiliation tracking</li>
+          <li>Assigned task completion monitoring</li>
+          <li>Phone contact for coordination</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#fff7ed;">📡</div>
+        <h3>Offline-First</h3>
+        <p>Works at the campsite even without cell signal — syncs when connectivity returns.</p>
+        <ul>
+          <li>localStorage cache for all six data views</li>
+          <li>Pending write queue for offline changes</li>
+          <li>Optimistic UI updates (no spinner wait)</li>
+          <li>Auto-sync on reconnect</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="container">
+    <span class="label">Architecture</span>
+    <h2>Under the hood</h2>
+    <p>Three layers. No servers. No bills. Here's how data flows from your browser to Google Sheets and back.</p>
+
+    <div class="arch-diagram">
+      <div class="arch-layers">
+
+        <div class="arch-layer layer-user">
+          <div class="arch-layer-head">🙋 User</div>
+          <div class="arch-layer-body">
+            <span class="arch-tech-pill">Browser</span>
+            <span class="arch-tech-pill">Mobile</span>
+            <p class="arch-detail">
+              Opens the app on any device — phone at the campsite, laptop at home. No app store. No install. Just a URL.
+            </p>
+          </div>
+        </div>
+
+        <div class="arch-arrow">⇄</div>
+
+        <div class="arch-layer layer-front">
+          <div class="arch-layer-head">⚛️ Frontend</div>
+          <div class="arch-layer-body">
+            <span class="arch-tech-pill">React 18</span>
+            <span class="arch-tech-pill">Babel</span>
+            <span class="arch-tech-pill">CSS Variables</span>
+            <span class="arch-tech-pill">localStorage</span>
+            <p class="arch-detail">
+              Single HTML file. React and Babel load from CDN — no npm, no webpack, no build step. All state, caching, and offline logic lives here.
+            </p>
+            <div class="offline-badge">
+              <div class="pulse"></div>
+              Offline queue active when no signal
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">⇄</div>
+
+        <div class="arch-layer layer-script">
+          <div class="arch-layer-head">⚙️ Apps Script</div>
+          <div class="arch-layer-body">
+            <span class="arch-tech-pill">Google Apps Script</span>
+            <span class="arch-tech-pill">REST API</span>
+            <span class="arch-tech-pill">CORS</span>
+            <p class="arch-detail">
+              ~250 lines of JavaScript deployed as a Google Web App. Handles all reads and writes. Google runs it for free on their infrastructure — 0 servers to manage.
+            </p>
+          </div>
+        </div>
+
+        <div class="arch-arrow">⇄</div>
+
+        <div class="arch-layer layer-sheets">
+          <div class="arch-layer-head">📊 Google Sheets</div>
+          <div class="arch-layer-body">
+            <span class="arch-tech-pill">6 Sheet Tabs</span>
+            <span class="arch-tech-pill">Auto Headers</span>
+            <span class="arch-tech-pill">Row IDs</span>
+            <p class="arch-detail">
+              Acts as the database. Each tab is a table: Schedule, ShoppingList, Volunteers, Families, Expenses, Signups. Non-technical teammates can open the sheet and see/edit the data directly.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- data flow -->
+      <div class="data-flow" style="margin-top:32px;">
+        <div class="flow-title">Request lifecycle — marking a shopping item purchased</div>
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="num">1</div>
+            <div class="title">User taps "Purchased"</div>
+            <div class="desc">UI updates immediately (optimistic) — no waiting.</div>
+          </div>
+          <div class="flow-step">
+            <div class="num">2</div>
+            <div class="title">POST to Apps Script</div>
+            <div class="desc">fetch() sends <code>action=updateStatus&id=…&status=Purchased</code> to the /exec URL.</div>
+          </div>
+          <div class="flow-step">
+            <div class="num">3</div>
+            <div class="title">Sheet updated</div>
+            <div class="desc">Apps Script finds the row by ID, writes "Purchased" to the Status column.</div>
+          </div>
+          <div class="flow-step">
+            <div class="num">4</div>
+            <div class="title">Response returns</div>
+            <div class="desc">Success JSON confirms the write; cache is invalidated for the next read.</div>
+          </div>
+          <div class="flow-step">
+            <div class="num">5</div>
+            <div class="title">Offline? Queued</div>
+            <div class="desc">If no signal, write goes into localStorage pending queue and replays on reconnect.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API surface -->
+      <div class="data-flow" style="margin-top:20px;">
+        <div class="flow-title">API surface — all operations</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+          <span style="background:rgba(16,185,129,.15);color:#6ee7b7;padding:4px 10px;border-radius:6px;font-size:.78rem;">GET getSchedule</span>
+          <span style="background:rgba(16,185,129,.15);color:#6ee7b7;padding:4px 10px;border-radius:6px;font-size:.78rem;">GET getShopping</span>
+          <span style="background:rgba(16,185,129,.15);color:#6ee7b7;padding:4px 10px;border-radius:6px;font-size:.78rem;">GET getVolunteers</span>
+          <span style="background:rgba(16,185,129,.15);color:#6ee7b7;padding:4px 10px;border-radius:6px;font-size:.78rem;">GET getExpenses</span>
+          <span style="background:rgba(16,185,129,.15);color:#6ee7b7;padding:4px 10px;border-radius:6px;font-size:.78rem;">GET getSignups</span>
+          <span style="background:rgba(16,185,129,.15);color:#6ee7b7;padding:4px 10px;border-radius:6px;font-size:.78rem;">GET getSummary</span>
+          <span style="background:rgba(16,185,129,.15);color:#6ee7b7;padding:4px 10px;border-radius:6px;font-size:.78rem;">GET getVolunteerDues</span>
+          <span style="background:rgba(245,158,11,.15);color:#fcd34d;padding:4px 10px;border-radius:6px;font-size:.78rem;">POST addSignup</span>
+          <span style="background:rgba(245,158,11,.15);color:#fcd34d;padding:4px 10px;border-radius:6px;font-size:.78rem;">POST addExpense</span>
+          <span style="background:rgba(245,158,11,.15);color:#fcd34d;padding:4px 10px;border-radius:6px;font-size:.78rem;">POST updateExpense</span>
+          <span style="background:rgba(245,158,11,.15);color:#fcd34d;padding:4px 10px;border-radius:6px;font-size:.78rem;">POST addShoppingItem</span>
+          <span style="background:rgba(245,158,11,.15);color:#fcd34d;padding:4px 10px;border-radius:6px;font-size:.78rem;">POST updateStatus</span>
+          <span style="background:rgba(245,158,11,.15);color:#fcd34d;padding:4px 10px;border-radius:6px;font-size:.78rem;">POST updateVolunteer</span>
+          <span style="background:rgba(245,158,11,.15);color:#fcd34d;padding:4px 10px;border-radius:6px;font-size:.78rem;">POST updateScheduleItem</span>
+        </div>
+      </div>
+
+    </div><!-- /arch-diagram -->
+
+  </div>
+</section>
+
+<!-- COST -->
+<section id="cost">
+  <div class="container">
+    <span class="label">Cost Breakdown</span>
+    <h2>$0/month. Seriously.</h2>
+    <p>Compare what a typical SaaS stack would cost versus this approach.</p>
+    <div class="cost-grid">
+
+      <div class="cost-comparison">
+        <h3>Typical SaaS stack</h3>
+        <div class="cost-row">
+          <span class="service">Backend hosting (Railway / Render)</span>
+          <span class="price expensive">$5–20/mo</span>
+        </div>
+        <div class="cost-row">
+          <span class="service">Database (Postgres / Supabase)</span>
+          <span class="price expensive">$0–25/mo</span>
+        </div>
+        <div class="cost-row">
+          <span class="service">Auth provider</span>
+          <span class="price expensive">$0–10/mo</span>
+        </div>
+        <div class="cost-row">
+          <span class="service">CDN / static hosting</span>
+          <span class="price expensive">$0–5/mo</span>
+        </div>
+        <div class="cost-row">
+          <span class="service">Monitoring / logging</span>
+          <span class="price expensive">$0–10/mo</span>
+        </div>
+        <div class="cost-total expensive">$5 – $70 / month</div>
+      </div>
+
+      <div class="cost-comparison">
+        <h3>This approach</h3>
+        <div class="cost-row">
+          <span class="service">GitHub Pages (static hosting)</span>
+          <span class="price free">Free</span>
+        </div>
+        <div class="cost-row">
+          <span class="service">Google Apps Script (compute)</span>
+          <span class="price free">Free</span>
+        </div>
+        <div class="cost-row">
+          <span class="service">Google Sheets (database)</span>
+          <span class="price free">Free</span>
+        </div>
+        <div class="cost-row">
+          <span class="service">React &amp; Babel (via CDN)</span>
+          <span class="price free">Free</span>
+        </div>
+        <div class="cost-row">
+          <span class="service">Domain (optional)</span>
+          <span class="price" style="color:var(--muted);">~$12/yr</span>
+        </div>
+        <div class="cost-total free">$0 / month</div>
+      </div>
+
+    </div>
+
+    <div class="why-free" style="margin-top:32px;">
+      <h3>Why this works at scale</h3>
+      <div class="why-item">
+        <div class="why-icon" style="background:#dbeafe;">☁️</div>
+        <div class="body">
+          <div class="title">Google runs your backend</div>
+          <div class="desc">Apps Script runs on Google's infrastructure — the same fleet that serves Gmail and Sheets. You get auto-scaling, uptime, and global edge presence for free within Google's generous quotas (20,000 requests/day).</div>
+        </div>
+      </div>
+      <div class="why-item">
+        <div class="why-icon" style="background:#dcfce7;">📊</div>
+        <div class="body">
+          <div class="title">Google Sheets is a capable database for small apps</div>
+          <div class="desc">For groups under ~500 rows per sheet, Sheets performs like a real database. It handles concurrent edits, revision history, and can be read by non-technical admins without any SQL knowledge.</div>
+        </div>
+      </div>
+      <div class="why-item">
+        <div class="why-icon" style="background:#fef9c3;">🚀</div>
+        <div class="body">
+          <div class="title">GitHub Pages is a CDN</div>
+          <div class="desc">Your single HTML file gets served from GitHub's global edge network. HTTPS included. Custom domain supported. No Nginx, no SSL certs, no config — just push to the gh-pages branch.</div>
+        </div>
+      </div>
+      <div class="why-item">
+        <div class="why-icon" style="background:#fce7f3;">🧠</div>
+        <div class="body">
+          <div class="title">No build = zero DevOps overhead</div>
+          <div class="desc">No CI/CD to maintain, no npm audit vulnerabilities to patch, no container to update. Deployment is literally opening the file in your editor and saving it to GitHub.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW TO BUILD -->
+<section id="howto">
+  <div class="container">
+    <span class="label">Build Your Own</span>
+    <h2>Deploy your version in ~10 minutes</h2>
+    <p>Here's exactly how the system was built and how to replicate it for any group coordination use case.</p>
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Create the Google Sheet</h3>
+          <p>Go to sheets.google.com and create a new spreadsheet. Note the spreadsheet ID from the URL — it's the long string between <code>/d/</code> and <code>/edit</code>.</p>
+          <div class="code-block">
+<span class="comment"># Your Sheet URL looks like:</span>
+https://docs.google.com/spreadsheets/d/<span class="string">YOUR_SPREADSHEET_ID</span>/edit
+
+<span class="comment"># Create 6 tabs named:</span>
+Schedule | ShoppingList | Volunteers | Families | Expenses | Signups
+          </div>
+          <div class="step-tip">💡 The Apps Script's <code>setupSheetHeaders()</code> function can create all tabs and headers automatically for you — just run it once after deploying.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Deploy the Google Apps Script backend</h3>
+          <p>In your Sheet: Extensions → Apps Script. Paste in <code>Code.gs</code>, set your spreadsheet ID, then deploy as a Web App.</p>
+          <div class="code-block">
+<span class="comment">// Top of Code.gs — set your sheet ID</span>
+<span class="keyword">const</span> SPREADSHEET_ID = <span class="string">'your-sheet-id-here'</span>;
+
+<span class="comment">// Key pattern: every action routes through doGet / doPost</span>
+<span class="keyword">function</span> <span class="fn">doGet</span>(e) {
+  <span class="keyword">const</span> action = e.parameter.action;
+  <span class="keyword">if</span> (action === <span class="string">'getSchedule'</span>)  <span class="keyword">return</span> corsResponse(getSchedule());
+  <span class="keyword">if</span> (action === <span class="string">'getShopping'</span>)  <span class="keyword">return</span> corsResponse(getShopping());
+  <span class="comment">// ... more actions</span>
+}
+
+<span class="comment">// Deploy: Execute as "Me" → Access "Anyone" → Deploy</span>
+<span class="comment">// Copy the /exec URL — this is your API endpoint</span>
+          </div>
+          <div class="step-tip">🔑 The Web App /exec URL acts as your API key. Only share it with people who need write access.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Configure the frontend</h3>
+          <p>Open <code>index.html</code>, find the config constants near the top of the script, and paste in your Apps Script URL.</p>
+          <div class="code-block">
+<span class="comment">// index.html — two constants to set</span>
+<span class="keyword">const</span> APPS_SCRIPT_URL = <span class="string">'https://script.google.com/macros/s/YOUR_ID/exec'</span>;
+<span class="keyword">const</span> USE_MOCK_DATA   = <span class="keyword">false</span>; <span class="comment">// true = demo mode, no real backend</span>
+
+<span class="comment">// That's it. The whole app is self-contained in this one file.</span>
+          </div>
+          <div class="step-tip">🧪 Keep <code>USE_MOCK_DATA = true</code> while designing — the app ships with realistic sample data for all 6 views.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>Deploy to GitHub Pages</h3>
+          <p>Push <code>index.html</code> to your repo's <code>gh-pages</code> branch. GitHub automatically serves it at your Pages URL. Done.</p>
+          <div class="code-block">
+git checkout -b gh-pages
+git add index.html
+git commit -m <span class="string">"deploy camping app"</span>
+git push origin gh-pages
+
+<span class="comment"># Live at: https://&lt;your-username&gt;.github.io/&lt;repo-name&gt;/</span>
+<span class="comment"># Free HTTPS included. No config needed.</span>
+          </div>
+          <div class="step-tip">🌐 Alternatively: drag <code>index.html</code> onto Netlify's dashboard — it deploys in seconds with a random URL you can share immediately.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>Share the URL with your group</h3>
+          <p>Send the GitHub Pages URL to everyone. No login required. The app handles all coordination from here — shopping, expenses, schedule, volunteers.</p>
+          <div class="code-block">
+<span class="comment"># Share this link with your group:</span>
+https://your-username.github.io/camping-planner/
+
+<span class="comment"># Admins can also view / edit data directly in Google Sheets</span>
+<span class="comment"># Real-time collaboration built in — no extra setup</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- POWER -->
+<section id="power">
+  <div class="container">
+    <span class="label">The Bigger Picture</span>
+    <h2>Why this pattern is powerful</h2>
+    <p>This isn't just a camping app. It's a reusable pattern for building real collaborative tools with zero infrastructure.</p>
+
+    <div class="power-grid">
+
+      <div class="power-card">
+        <div class="icon">⚡</div>
+        <h3>Idea to live app in an afternoon</h3>
+        <p>No boilerplate, no environment setup, no deployment pipeline. Open a text editor, write some React, paste a URL, push to GitHub. You're live.</p>
+      </div>
+
+      <div class="power-card">
+        <div class="icon">🔧</div>
+        <h3>The database is a spreadsheet</h3>
+        <p>Non-technical teammates can read, edit, and export the data in Google Sheets. No SQL, no database client, no access controls to configure. Sheets is the admin panel.</p>
+      </div>
+
+      <div class="power-card">
+        <div class="icon">📱</div>
+        <h3>Offline-first out of the box</h3>
+        <p>The localStorage cache + pending write queue pattern makes the app resilient to bad connectivity. Users see data immediately and writes are queued automatically.</p>
+      </div>
+
+      <div class="power-card">
+        <div class="icon">🧩</div>
+        <h3>Adapt it to any group coordination need</h3>
+        <p>The sheet-as-database pattern, offline caching, and Apps Script API layer are reusable scaffolding. Swap the domain — same architecture.</p>
+      </div>
+
+      <div class="power-card">
+        <div class="icon">🔒</div>
+        <h3>Secure enough for small trusted groups</h3>
+        <p>The Web App URL is your API key. Google's OAuth controls who can view the underlying sheet. For a private group of 10–50 people, this is genuinely appropriate security.</p>
+      </div>
+
+      <div class="power-card">
+        <div class="icon">📈</div>
+        <h3>Scales further than you'd expect</h3>
+        <p>Apps Script allows 20,000 requests/day on the free tier. Google Sheets handles thousands of rows without issue. This can serve a group of hundreds with no cost increase.</p>
+      </div>
+
+    </div>
+
+    <div class="use-cases">
+      <h3>Other things you could build with this exact pattern</h3>
+      <div class="use-case-pills">
+        <span class="use-case-pill">🏡 HOA meeting tracker</span>
+        <span class="use-case-pill">🎂 Office party planner</span>
+        <span class="use-case-pill">⚽ Sports team roster &amp; schedule</span>
+        <span class="use-case-pill">🎓 School event volunteer sign-up</span>
+        <span class="use-case-pill">🏢 Department budget tracker</span>
+        <span class="use-case-pill">🎮 Game night organizer</span>
+        <span class="use-case-pill">🏕️ Scout troop planner</span>
+        <span class="use-case-pill">🎪 Festival vendor tracker</span>
+        <span class="use-case-pill">📦 Shared equipment borrowing log</span>
+        <span class="use-case-pill">🍲 Community cookbook &amp; meal train</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>
+    Built by <strong style="color:#94a3b8;">Surya Rao Rayarao</strong> · MIT License ·
+    <a href="https://suryaraor.github.io/camping-demo/" target="_blank">Live App</a> ·
+    <a href="https://github.com/suryaraor/camping-demo" target="_blank">Source on GitHub</a>
+  </p>
+  <p style="margin-top:8px;">Stack: React · Google Apps Script · Google Sheets · GitHub Pages · Zero dollars</p>
+</footer>
+
+</body>
+</html>
