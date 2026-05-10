@@ -40,3 +40,4 @@ The app is a single static `index.html` file — host it on GitHub Pages, Netlif
 ## License
 
 MIT — see [LICENSE](LICENSE).
+update
